@@ -1,0 +1,42 @@
+package com.bb.faq.controller;
+
+import com.bb.faq.DTOs.AudioResponseDTO;
+import com.bb.faq.service.AudioService;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
+
+import java.io.IOException;
+import java.util.List;
+
+@RestController
+@RequestMapping("/api/audio")
+@CrossOrigin(origins = "http://localhost:3000", allowedHeaders = "*", methods = {RequestMethod.POST, RequestMethod.OPTIONS}) // Liberando o Next.js novamente
+public class AudioController {
+
+    private final AudioService audioService;
+
+    public AudioController(AudioService audioService) {
+        this.audioService = audioService;
+    }
+
+
+    @PostMapping(value = "/{tutorialId}/audios", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @ResponseStatus(HttpStatus.CREATED)
+    public AudioResponseDTO fazerUploadAudio(
+            @PathVariable Long tutorialId,
+            @RequestParam("arquivo") MultipartFile arquivo) throws IOException {
+
+
+        return audioService.salvarAudio(tutorialId, arquivo);
+    }
+    @PatchMapping("/audios/{audioId}/upvote")
+    public AudioResponseDTO votarNoAudio(@PathVariable Long audioId) {
+        return audioService.adicionarVoto(audioId);
+    }
+    @GetMapping("/{tutorialId}/audios")
+    public List<AudioResponseDTO> buscarAudiosOrdenados(@PathVariable Long tutorialId) {
+        return audioService.listarAudiosDoTutorial(tutorialId);
+    }
+}
