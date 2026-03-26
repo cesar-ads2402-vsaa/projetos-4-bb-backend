@@ -14,11 +14,11 @@ public class Usuario {
     @Column(nullable = false)
     private String nome;
 
-    @Column(nullable = false, unique = true) // unique = true impede dois cadastros com o mesmo e-mail!
+    @Column(nullable = false, unique = true)
     private String email;
 
     @Column(nullable = false)
-    private String senha; // Mais para frente, vamos criptografar isso!
+    private String senha;
 
     // Getters e Setters
     public Long getId() { return id; }
