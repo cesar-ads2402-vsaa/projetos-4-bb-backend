@@ -6,6 +6,7 @@ import com.bb.faq.DTOs.RegistroDTO;
 import com.bb.faq.DTOs.TokenResponseDTO;
 import com.bb.faq.service.UsuarioService;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -29,5 +30,11 @@ public class UsuarioController {
     @ResponseStatus(HttpStatus.OK)
     public TokenResponseDTO login(@RequestBody LoginDTO dto) {
         return service.login(dto);
+    }
+
+
+    @ExceptionHandler(RuntimeException.class)
+    public ResponseEntity<String> handleRuntimeException(RuntimeException ex) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(ex.getMessage());
     }
 }
