@@ -9,7 +9,6 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/tutoriais")
-@CrossOrigin(origins = "http://localhost:3000") // Libera o acesso para o Next.js!
 public class TutorialController {
 
     private final TutorialService service;

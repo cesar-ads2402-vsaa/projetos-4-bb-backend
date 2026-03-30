@@ -15,10 +15,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.nio.file.StandardCopyOption;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -28,6 +24,7 @@ public class AudioService {
 
     private final AudioRepository audioRepository;
     private final TutorialRepository tutorialRepository;
+    private final BlobContainerClient containerClient;
 
 
     @Value("${azure.storage.connection-string}")
@@ -36,39 +33,55 @@ public class AudioService {
     @Value("${azure.storage.container-name}")
     private String containerName;
 
-    public AudioService(AudioRepository audioRepository, TutorialRepository tutorialRepository) {
+    public AudioService(
+            AudioRepository audioRepository,
+            TutorialRepository tutorialRepository,
+            @Value("${azure.storage.connection-string}") String connectionString,
+            @Value("${azure.storage.container-name}") String containerName) {
+
         this.audioRepository = audioRepository;
         this.tutorialRepository = tutorialRepository;
+
+        BlobServiceClient blobServiceClient = new BlobServiceClientBuilder()
+                .connectionString(connectionString)
+                .buildClient();
+        this.containerClient = blobServiceClient.getBlobContainerClient(containerName);
     }
 
     public AudioResponseDTO salvarAudio(Long tutorialId, MultipartFile arquivo) throws IOException {
+        //-------------Configs de Seguranca-----------------//
 
         // 1. Verifica se o video (Tutorial) existe no banco de dados
         Tutorial tutorial = tutorialRepository.findById(tutorialId)
                 .orElseThrow(() -> new RuntimeException("Tutorial não encontrado!"));
 
+        // 2. Verifica o tipo do arquivo
+        String contentType = arquivo.getContentType();
+        if (contentType == null || !contentType.startsWith("audio/")) {
+            throw new IllegalArgumentException("Formato inválido! Apenas ficheiros de áudio são permitidos.");
+        }
 
-        //-----------NUVEM-------------////
-
-        // 1. Gera um nome Unico para o arquivo
+        // 2.1 Verifica pela extensao do arquivo
         String nomeOriginal = arquivo.getOriginalFilename();
+        if (nomeOriginal == null || (!nomeOriginal.endsWith(".webm") && !nomeOriginal.endsWith(".mp3") && !nomeOriginal.endsWith(".ogg"))) {
+            throw new IllegalArgumentException("Extensão não suportada! Grave em .webm, .mp3 ou .ogg.");
+        }
+
+        // 3. Gera o nome único para o arquivo
         String extensao = nomeOriginal.substring(nomeOriginal.lastIndexOf("."));
         String nomeArquivoUnico = UUID.randomUUID().toString() + extensao;
 
-        // 2. Conecta na Azure e pega o Container
-        BlobServiceClient blobServiceClient = new BlobServiceClientBuilder()
-                .connectionString(connectionString)
-                .buildClient();
-        BlobContainerClient containerClient = blobServiceClient.getBlobContainerClient(containerName);
+        //---------------------------------------------------//
 
-        // 3. Faz o upload do arquivo direto para a nuvem
+
+        // 4. Faz o upload do arquivo direto para a nuvem
         BlobClient blobClient = containerClient.getBlobClient(nomeArquivoUnico);
         blobClient.upload(arquivo.getInputStream(), arquivo.getSize(), true);
 
-        // 4. Pega o link publico que a Azure gerou
+        // 5. Pega o link publico que a Azure gerou
         String urlDoAudioNaNuvem = blobClient.getBlobUrl();
 
-        // 5. Salva no banco de dados
+        // 6. Salva no banco de dados
         Audio novoAudio = new Audio();
         novoAudio.setCaminhoArquivo(urlDoAudioNaNuvem);
         novoAudio.setTutorial(tutorial);
@@ -85,6 +98,8 @@ public class AudioService {
                 audioSalvo.getVotos()
         );
     }
+
+
 
     @Transactional
     public AudioResponseDTO adicionarVoto(Long audioId) {

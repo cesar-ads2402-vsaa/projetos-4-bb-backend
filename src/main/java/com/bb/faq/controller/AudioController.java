@@ -12,7 +12,6 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/audio")
-@CrossOrigin(origins = "http://localhost:3000", allowedHeaders = "*", methods = {RequestMethod.POST, RequestMethod.OPTIONS}) // Liberando o Next.js novamente
 public class AudioController {
 
     private final AudioService audioService;
@@ -22,7 +21,7 @@ public class AudioController {
     }
 
 
-    @PostMapping(value = "/{tutorialId}/audios", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PostMapping(value = "/{tutorialId}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @ResponseStatus(HttpStatus.CREATED)
     public AudioResponseDTO fazerUploadAudio(
             @PathVariable Long tutorialId,
@@ -31,11 +30,11 @@ public class AudioController {
 
         return audioService.salvarAudio(tutorialId, arquivo);
     }
-    @PatchMapping("/audios/{audioId}/upvote")
+    @PatchMapping("/{audioId}/upvote")
     public AudioResponseDTO votarNoAudio(@PathVariable Long audioId) {
         return audioService.adicionarVoto(audioId);
     }
-    @GetMapping("/{tutorialId}/audios")
+    @GetMapping("/{tutorialId}")
     public List<AudioResponseDTO> buscarAudiosOrdenados(@PathVariable Long tutorialId) {
         return audioService.listarAudiosDoTutorial(tutorialId);
     }

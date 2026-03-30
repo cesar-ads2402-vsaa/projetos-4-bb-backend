@@ -19,7 +19,7 @@ public class TutorialService {
         this.repository = repository;
     }
 
-    // 1. Método para listar todos os tutoriais (GET)
+    // 1. Listar todos os GETs
     public List<TutorialResponseDTO> listarTodos() {
 
         List<Tutorial> tutoriais = repository.findAll();
@@ -35,19 +35,19 @@ public class TutorialService {
                 .collect(Collectors.toList());
     }
 
-    // 2. Método para criar um novo tutorial (POST)
+    // 2. Criar novo tutorial
     public TutorialResponseDTO criar(TutorialRequestDTO dto) {
 
-        // Passo A: Transformar o DTO (que veio do Next.js) numa Entidade vazia
+        // Transformar o DTO (que veio do Next.js) numa Entidade vazia
         Tutorial novoTutorial = new Tutorial();
         novoTutorial.setPergunta(dto.pergunta());
         novoTutorial.setYoutubeUrl(dto.youtubeUrl());
         // (O ID e a data de criação são gerados automaticamente, não precisamos de os colocar aqui)
 
-        // Passo B: Mandar o Repository guardar na base de dados (SQLite)
+        // Mandar o Repository guardar na base de dados
         Tutorial tutorialGuardado = repository.save(novoTutorial);
 
-        // Passo C: Transformar a Entidade guardada (agora já com ID) num ResponseDTO para devolver ao Next.js
+        // Transformar a Entidade guardada (agora já com ID) num ResponseDTO para devolver ao Next.js
         return new TutorialResponseDTO(
                 tutorialGuardado.getId(),
                 tutorialGuardado.getPergunta(),

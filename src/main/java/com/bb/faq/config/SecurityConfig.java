@@ -35,7 +35,6 @@ public class SecurityConfig {
                 .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(req -> {
                     req.requestMatchers(HttpMethod.GET, "/api/tutoriais/**").permitAll();
-                    req.requestMatchers(HttpMethod.GET, "/uploads/**").permitAll();
                     req.requestMatchers(HttpMethod.POST, "/api/usuarios/login").permitAll();
                     req.requestMatchers(HttpMethod.POST, "/api/usuarios/registrar").permitAll();
                     req.anyRequest().authenticated();

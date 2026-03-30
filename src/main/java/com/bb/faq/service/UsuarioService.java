@@ -25,7 +25,8 @@ public class UsuarioService {
 
     // 1. REGISTRAR
     public void registrar(RegistroDTO dto) {
-        // Verifica se o e-mail já existe
+
+        // Verifica se o e-mail ja existe
         if (repository.findByEmail(dto.email()).isPresent()) {
             throw new RuntimeException("Este e-mail já está cadastrado!");
         }
@@ -34,13 +35,14 @@ public class UsuarioService {
         novoUsuario.setNome(dto.nome());
         novoUsuario.setEmail(dto.email());
 
-        // Criptografa a senha ANTES de salvar no banco!
+        // Criptografa a senha ANTES de salvar no banco
         novoUsuario.setSenha(passwordEncoder.encode(dto.senha()));
 
         repository.save(novoUsuario);
     }
 
     // 2. FAZER LOGIN
+
     public TokenResponseDTO login(LoginDTO dto) {
         // Busca o usuário pelo e-mail
         Usuario usuario = repository.findByEmail(dto.email())

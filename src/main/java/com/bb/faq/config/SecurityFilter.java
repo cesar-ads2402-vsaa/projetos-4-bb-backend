@@ -1,4 +1,4 @@
-package com.bb.faq.config; // Ajuste para o seu pacote correto
+package com.bb.faq.config;
 
 import com.bb.faq.repository.UsuarioRepository;
 import com.bb.faq.service.TokenService;
