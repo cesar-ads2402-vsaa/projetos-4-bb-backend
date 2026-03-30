@@ -1,5 +1,9 @@
 package com.bb.faq.service;
 
+import com.azure.storage.blob.BlobClient;
+import com.azure.storage.blob.BlobContainerClient;
+import com.azure.storage.blob.BlobServiceClient;
+import com.azure.storage.blob.BlobServiceClientBuilder;
 import com.bb.faq.DTOs.AudioResponseDTO;
 import com.bb.faq.model.Audio;
 import com.bb.faq.model.Tutorial;
@@ -26,8 +30,11 @@ public class AudioService {
     private final TutorialRepository tutorialRepository;
 
 
-    @Value("${app.upload.dir}")
-    private String uploadDir;
+    @Value("${azure.storage.connection-string}")
+    private String connectionString;
+
+    @Value("${azure.storage.container-name}")
+    private String containerName;
 
     public AudioService(AudioRepository audioRepository, TutorialRepository tutorialRepository) {
         this.audioRepository = audioRepository;
@@ -36,39 +43,40 @@ public class AudioService {
 
     public AudioResponseDTO salvarAudio(Long tutorialId, MultipartFile arquivo) throws IOException {
 
-        // 1. Verifica se o vídeo (Tutorial) realmente existe no banco de dados
+        // 1. Verifica se o video (Tutorial) existe no banco de dados
         Tutorial tutorial = tutorialRepository.findById(tutorialId)
                 .orElseThrow(() -> new RuntimeException("Tutorial não encontrado!"));
 
 
-        //-----------TROCAR POR NUVEM-------------////
-        // 2. Cria a pasta física no computador se ela ainda não existir
-        Path caminhoPasta = Paths.get(uploadDir);
-        if (!Files.exists(caminhoPasta)) {
-            Files.createDirectories(caminhoPasta);
-        }
-        // 3. Gera um nome único para o arquivo usando UUID
+        //-----------NUVEM-------------////
+
+        // 1. Gera um nome Unico para o arquivo
         String nomeOriginal = arquivo.getOriginalFilename();
         String extensao = nomeOriginal.substring(nomeOriginal.lastIndexOf("."));
         String nomeArquivoUnico = UUID.randomUUID().toString() + extensao;
 
-        // 4. Salva o arquivo fisicamente na pasta
-        Path caminhoDestino = caminhoPasta.resolve(nomeArquivoUnico);
-        Files.copy(arquivo.getInputStream(), caminhoDestino, StandardCopyOption.REPLACE_EXISTING);
+        // 2. Conecta na Azure e pega o Container
+        BlobServiceClient blobServiceClient = new BlobServiceClientBuilder()
+                .connectionString(connectionString)
+                .buildClient();
+        BlobContainerClient containerClient = blobServiceClient.getBlobContainerClient(containerName);
+
+        // 3. Faz o upload do arquivo direto para a nuvem
+        BlobClient blobClient = containerClient.getBlobClient(nomeArquivoUnico);
+        blobClient.upload(arquivo.getInputStream(), arquivo.getSize(), true);
+
+        // 4. Pega o link publico que a Azure gerou
+        String urlDoAudioNaNuvem = blobClient.getBlobUrl();
+
+        // 5. Salva no banco de dados
+        Audio novoAudio = new Audio();
+        novoAudio.setCaminhoArquivo(urlDoAudioNaNuvem);
+        novoAudio.setTutorial(tutorial);
+        Audio audioSalvo = audioRepository.save(novoAudio);
 
         //------------------------------------------------//
 
-
-
-        // 5. Agora que o arquivo está seguro no disco, salvamos o caminho no Banco de Dados (SQLite)
-        Audio novoAudio = new Audio();
-        // Salvamos um caminho relativo que o Front-end consiga acessar depois
-        novoAudio.setCaminhoArquivo("/" + uploadDir + "/" + nomeArquivoUnico);
-        novoAudio.setTutorial(tutorial);
-
-        Audio audioSalvo = audioRepository.save(novoAudio);
-
-        // 6. Retorna o DTO confirmando a operação
+        // 6. Retorna o DTO
         return new AudioResponseDTO(
                 audioSalvo.getId(),
                 audioSalvo.getCaminhoArquivo(),
@@ -88,10 +96,10 @@ public class AudioService {
         // 2. Soma +1 ao número de votos atual
         audio.setVotos(audio.getVotos() + 1);
 
-        // 3. Guarda a alteração (como usamos @Transactional, o Spring pode até fazer isto automaticamente, mas o .save() garante)
+        // 3. Guarda a alteração
         Audio audioAtualizado = audioRepository.save(audio);
 
-        // 4. Devolve o DTO atualizado para o Frontend mostrar o novo número
+        // 4. Devolve o DTO atualizado para o Frontend mostrar o novo numero
         return new AudioResponseDTO(
                 audioAtualizado.getId(),
                 audioAtualizado.getCaminhoArquivo(),
@@ -101,7 +109,7 @@ public class AudioService {
         );
     }
     public List<AudioResponseDTO> listarAudiosDoTutorial(Long tutorialId) {
-        // Usa a pesquisa mágica do Spring que já traz ordenado pelos mais votados!
+        // Orderna os Audios pelo mais votado
         List<Audio> audios = audioRepository.findByTutorialIdOrderByVotosDesc(tutorialId);
 
         return audios.stream()
