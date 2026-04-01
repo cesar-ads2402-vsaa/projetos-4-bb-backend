@@ -19,7 +19,10 @@ public class Audio {
     private LocalDateTime dataCriacao;
 
     @Column(nullable = false)
-    private Integer votos = 0; // Todo áudio começa com 0 votos
+    private Integer votos = 0;
+
+    @Column(nullable = false)
+    private String idioma;
 
 
     @ManyToOne
@@ -52,4 +55,12 @@ public class Audio {
     public void setVotos(Integer votos) { this.votos = votos; }
     public Usuario getAutor() { return autor; }
     public void setAutor(Usuario autor) { this.autor = autor; }
+
+    public String getIdioma() {
+        return idioma;
+    }
+
+    public void setIdioma(String idioma) {
+        this.idioma = idioma;
+    }
 }

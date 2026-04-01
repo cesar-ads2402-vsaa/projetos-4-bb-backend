@@ -25,17 +25,19 @@ public class AudioController {
     @ResponseStatus(HttpStatus.CREATED)
     public AudioResponseDTO fazerUploadAudio(
             @PathVariable Long tutorialId,
+            @RequestParam("idioma") String idioma,
             @RequestParam("arquivo") MultipartFile arquivo) throws IOException {
 
-
-        return audioService.salvarAudio(tutorialId, arquivo);
+        return audioService.salvarAudio(tutorialId, idioma, arquivo);
     }
     @PatchMapping("/{audioId}/upvote")
     public AudioResponseDTO votarNoAudio(@PathVariable Long audioId) {
         return audioService.adicionarVoto(audioId);
     }
     @GetMapping("/{tutorialId}")
-    public List<AudioResponseDTO> buscarAudiosOrdenados(@PathVariable Long tutorialId) {
-        return audioService.listarAudiosDoTutorial(tutorialId);
+    public List<AudioResponseDTO> buscarAudiosOrdenados(@PathVariable Long tutorialId,
+                                                        @RequestParam("idioma") String idioma) {
+        
+        return audioService.listarAudiosDoTutorial(tutorialId, idioma);
     }
 }

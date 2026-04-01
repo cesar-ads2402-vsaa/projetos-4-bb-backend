@@ -7,5 +7,6 @@ public record AudioResponseDTO(
         String caminhoArquivo,
         LocalDateTime dataCriacao,
         Long tutorialId,
-        Integer votos
+        Integer votos,
+        String idioma
 ) {}

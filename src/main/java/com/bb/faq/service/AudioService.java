@@ -48,8 +48,9 @@ public class AudioService {
         this.containerClient = blobServiceClient.getBlobContainerClient(containerName);
     }
 
-    public AudioResponseDTO salvarAudio(Long tutorialId, MultipartFile arquivo) throws IOException {
+    public AudioResponseDTO salvarAudio(Long tutorialId,String idioma, MultipartFile arquivo) throws IOException {
         //-------------Configs de Seguranca-----------------//
+
 
         // 1. Verifica se o video (Tutorial) existe no banco de dados
         Tutorial tutorial = tutorialRepository.findById(tutorialId)
@@ -85,7 +86,10 @@ public class AudioService {
         Audio novoAudio = new Audio();
         novoAudio.setCaminhoArquivo(urlDoAudioNaNuvem);
         novoAudio.setTutorial(tutorial);
+        novoAudio.setIdioma(idioma); //
+        novoAudio.setVotos(0);
         Audio audioSalvo = audioRepository.save(novoAudio);
+
 
         //------------------------------------------------//
 
@@ -95,7 +99,8 @@ public class AudioService {
                 audioSalvo.getCaminhoArquivo(),
                 audioSalvo.getDataCriacao(),
                 audioSalvo.getTutorial().getId(),
-                audioSalvo.getVotos()
+                audioSalvo.getVotos(),
+                audioSalvo.getIdioma()
         );
     }
 
@@ -120,12 +125,13 @@ public class AudioService {
                 audioAtualizado.getCaminhoArquivo(),
                 audioAtualizado.getDataCriacao(),
                 audioAtualizado.getTutorial().getId(),
-                audioAtualizado.getVotos()
+                audioAtualizado.getVotos(),
+                audioAtualizado.getIdioma()
         );
     }
-    public List<AudioResponseDTO> listarAudiosDoTutorial(Long tutorialId) {
+    public List<AudioResponseDTO> listarAudiosDoTutorial(Long tutorialId, String idioma) {
         // Orderna os Audios pelo mais votado
-        List<Audio> audios = audioRepository.findByTutorialIdOrderByVotosDesc(tutorialId);
+        List<Audio> audios = audioRepository.findByTutorialIdAndIdiomaOrderByVotosDesc(tutorialId, idioma);
 
         return audios.stream()
                 .map(audio -> new AudioResponseDTO(
@@ -133,7 +139,8 @@ public class AudioService {
                         audio.getCaminhoArquivo(),
                         audio.getDataCriacao(),
                         audio.getTutorial().getId(),
-                        audio.getVotos()
+                        audio.getVotos(),
+                        audio.getIdioma()
                 ))
                 .collect(Collectors.toList());
     }
