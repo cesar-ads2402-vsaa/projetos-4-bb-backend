@@ -38,6 +38,9 @@ public class SecurityConfig {
                     req.requestMatchers(HttpMethod.GET, "/api/tutoriais/**").permitAll();
                     req.requestMatchers(HttpMethod.POST, "/api/usuarios/login").permitAll();
                     req.requestMatchers(HttpMethod.POST, "/api/usuarios/cadastro").permitAll();
+                    req.requestMatchers(HttpMethod.OPTIONS, "/**").permitAll();
+                    req.requestMatchers("/error").permitAll();
+
                     req.anyRequest().authenticated();
                 })
                 // A MÁGICA ACONTECE AQUI: Coloca o nosso filtro ANTES do filtro padrão do Spring

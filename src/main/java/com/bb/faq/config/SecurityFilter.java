@@ -34,20 +34,25 @@ public class SecurityFilter extends OncePerRequestFilter {
             var subject = tokenService.getSubject(tokenJWT);
 
             if (subject != null && !subject.isEmpty()) {
-                // ATENÇÃO: Verifique se o seu repositório realmente tem esse método "findByEmail"
-                var usuario = usuarioRepository.findByEmail(subject);
 
-                if (usuario != null) {
-                    // Cria uma permissão básica
+                // 1. O banco devolve a CAIXA (Optional)
+                var usuarioOptional = usuarioRepository.findByEmail(subject);
+
+                // 2. Verificamos se a caixa tem alguém dentro (isPresent)
+                if (usuarioOptional.isPresent()) {
+
+                    // 3. Tiramos o usuário de dentro da caixa!
+                    var usuario = usuarioOptional.get();
+
+                    // 4. Cria a permissão e avisa o Spring que o usuário real está logado
                     var permissoes = List.of(new SimpleGrantedAuthority("ROLE_USER"));
-
-                    // Avisa o Spring que o usuário está logado!
                     var authentication = new UsernamePasswordAuthenticationToken(usuario, null, permissoes);
                     SecurityContextHolder.getContext().setAuthentication(authentication);
                 }
             }
         }
 
+        // Se não tiver token, ou se não achar o usuário, a requisição segue e o SecurityConfig decide o que fazer
         filterChain.doFilter(request, response);
     }
 
