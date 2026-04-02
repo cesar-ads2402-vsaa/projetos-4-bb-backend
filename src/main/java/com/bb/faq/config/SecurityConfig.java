@@ -34,9 +34,10 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf.disable())
                 .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(req -> {
+                    req.requestMatchers(HttpMethod.GET, "/api/tutoriais").permitAll();
                     req.requestMatchers(HttpMethod.GET, "/api/tutoriais/**").permitAll();
                     req.requestMatchers(HttpMethod.POST, "/api/usuarios/login").permitAll();
-                    req.requestMatchers(HttpMethod.POST, "/api/usuarios/registrar").permitAll();
+                    req.requestMatchers(HttpMethod.POST, "/api/usuarios/cadastro").permitAll();
                     req.anyRequest().authenticated();
                 })
                 // A MÁGICA ACONTECE AQUI: Coloca o nosso filtro ANTES do filtro padrão do Spring

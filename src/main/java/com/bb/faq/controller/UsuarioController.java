@@ -19,7 +19,7 @@ public class UsuarioController {
         this.service = service;
     }
 
-    @PostMapping("/registrar")
+    @PostMapping("/cadastro")
     @ResponseStatus(HttpStatus.CREATED)
     public void registrar(@RequestBody RegistroDTO dto) {
         service.registrar(dto);
