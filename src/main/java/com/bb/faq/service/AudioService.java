@@ -2,15 +2,12 @@ package com.bb.faq.service;
 
 import com.azure.storage.blob.BlobClient;
 import com.azure.storage.blob.BlobContainerClient;
-import com.azure.storage.blob.BlobServiceClient;
-import com.azure.storage.blob.BlobServiceClientBuilder;
 import com.bb.faq.DTOs.AudioResponseDTO;
 import com.bb.faq.model.Audio;
 import com.bb.faq.model.Tutorial;
 import com.bb.faq.repository.AudioRepository;
 import com.bb.faq.repository.TutorialRepository;
 import jakarta.transaction.Transactional;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -27,25 +24,15 @@ public class AudioService {
     private final BlobContainerClient containerClient;
 
 
-    @Value("${azure.storage.connection-string}")
-    private String connectionString;
-
-    @Value("${azure.storage.container-name}")
-    private String containerName;
-
     public AudioService(
             AudioRepository audioRepository,
             TutorialRepository tutorialRepository,
-            @Value("${azure.storage.connection-string}") String connectionString,
-            @Value("${azure.storage.container-name}") String containerName) {
+            BlobContainerClient containerClient){
 
         this.audioRepository = audioRepository;
         this.tutorialRepository = tutorialRepository;
+        this.containerClient = containerClient;
 
-        BlobServiceClient blobServiceClient = new BlobServiceClientBuilder()
-                .connectionString(connectionString)
-                .buildClient();
-        this.containerClient = blobServiceClient.getBlobContainerClient(containerName);
     }
 
     public AudioResponseDTO salvarAudio(Long tutorialId,String idioma, MultipartFile arquivo) throws IOException {
