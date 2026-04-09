@@ -5,9 +5,12 @@ import com.azure.storage.blob.BlobContainerClient;
 import com.bb.faq.DTOs.AudioResponseDTO;
 import com.bb.faq.model.Audio;
 import com.bb.faq.model.Tutorial;
+import com.bb.faq.model.Usuario;
 import com.bb.faq.repository.AudioRepository;
 import com.bb.faq.repository.TutorialRepository;
+import com.bb.faq.repository.UsuarioRepository;
 import jakarta.transaction.Transactional;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -21,103 +24,90 @@ public class AudioService {
 
     private final AudioRepository audioRepository;
     private final TutorialRepository tutorialRepository;
+    private final UsuarioRepository usuarioRepository; // <-- NOVO: Injetado para buscar o autor
     private final BlobContainerClient containerClient;
-
 
     public AudioService(
             AudioRepository audioRepository,
             TutorialRepository tutorialRepository,
+            UsuarioRepository usuarioRepository,
             BlobContainerClient containerClient){
 
         this.audioRepository = audioRepository;
         this.tutorialRepository = tutorialRepository;
+        this.usuarioRepository = usuarioRepository; // <-- NOVO: Inicializado
         this.containerClient = containerClient;
-
     }
 
-    public AudioResponseDTO salvarAudio(Long tutorialId,String idioma, MultipartFile arquivo) throws IOException {
-        //-------------Configs de Seguranca-----------------//
+    public AudioResponseDTO salvarAudio(Long tutorialId, String idioma, MultipartFile arquivo) throws IOException {
 
-
-        // 1. Verifica se o video (Tutorial) existe no banco de dados
         Tutorial tutorial = tutorialRepository.findById(tutorialId)
                 .orElseThrow(() -> new RuntimeException("Tutorial não encontrado!"));
 
-        // 2. Verifica o tipo do arquivo
         String contentType = arquivo.getContentType();
         if (contentType == null || !contentType.startsWith("audio/")) {
             throw new IllegalArgumentException("Formato inválido! Apenas ficheiros de áudio são permitidos.");
         }
 
-        // 2.1 Verifica pela extensao do arquivo
         String nomeOriginal = arquivo.getOriginalFilename();
         if (nomeOriginal == null || (!nomeOriginal.endsWith(".webm") && !nomeOriginal.endsWith(".mp3") && !nomeOriginal.endsWith(".ogg"))) {
             throw new IllegalArgumentException("Extensão não suportada! Grave em .webm, .mp3 ou .ogg.");
         }
 
-        // 3. Gera o nome único para o arquivo
+
+        Usuario usuarioSessao = (Usuario) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+
+        Usuario autor = usuarioRepository.findByEmail(usuarioSessao.getEmail())
+                .orElseThrow(() -> new RuntimeException("Usuário logado não encontrado no banco de dados!"));
+
         String extensao = nomeOriginal.substring(nomeOriginal.lastIndexOf("."));
         String nomeArquivoUnico = UUID.randomUUID().toString() + extensao;
 
-        //---------------------------------------------------//
 
-
-        // 4. Faz o upload do arquivo direto para a nuvem
         BlobClient blobClient = containerClient.getBlobClient(nomeArquivoUnico);
         blobClient.upload(arquivo.getInputStream(), arquivo.getSize(), true);
-
-        // 5. Pega o link publico que a Azure gerou
         String urlDoAudioNaNuvem = blobClient.getBlobUrl();
 
-        // 6. Salva no banco de dados
         Audio novoAudio = new Audio();
         novoAudio.setCaminhoArquivo(urlDoAudioNaNuvem);
         novoAudio.setTutorial(tutorial);
-        novoAudio.setIdioma(idioma); //
+        novoAudio.setIdioma(idioma);
         novoAudio.setVotos(0);
+        novoAudio.setAutor(autor);
+
         Audio audioSalvo = audioRepository.save(novoAudio);
 
-
-        //------------------------------------------------//
-
-        // 6. Retorna o DTO
         return new AudioResponseDTO(
                 audioSalvo.getId(),
                 audioSalvo.getCaminhoArquivo(),
                 audioSalvo.getDataCriacao(),
                 audioSalvo.getTutorial().getId(),
                 audioSalvo.getVotos(),
-                audioSalvo.getIdioma()
+                audioSalvo.getIdioma(),
+                audioSalvo.getAutor() != null ? audioSalvo.getAutor().getNome() : "Usuário Anônimo"
         );
     }
 
-
-
     @Transactional
     public AudioResponseDTO adicionarVoto(Long audioId) {
-
-        // 1. Procura o áudio na base de dados
         Audio audio = audioRepository.findById(audioId)
                 .orElseThrow(() -> new RuntimeException("Áudio não encontrado!"));
 
-        // 2. Soma +1 ao número de votos atual
         audio.setVotos(audio.getVotos() + 1);
-
-        // 3. Guarda a alteração
         Audio audioAtualizado = audioRepository.save(audio);
 
-        // 4. Devolve o DTO atualizado para o Frontend mostrar o novo numero
         return new AudioResponseDTO(
                 audioAtualizado.getId(),
                 audioAtualizado.getCaminhoArquivo(),
                 audioAtualizado.getDataCriacao(),
                 audioAtualizado.getTutorial().getId(),
                 audioAtualizado.getVotos(),
-                audioAtualizado.getIdioma()
+                audioAtualizado.getIdioma(),
+                audioAtualizado.getAutor() != null ? audioAtualizado.getAutor().getNome() : "Usuário Anônimo"
         );
     }
+
     public List<AudioResponseDTO> listarAudiosDoTutorial(Long tutorialId, String idioma) {
-        // Orderna os Audios pelo mais votado
         List<Audio> audios = audioRepository.findByTutorialIdAndIdiomaOrderByVotosDesc(tutorialId, idioma);
 
         return audios.stream()
@@ -127,7 +117,8 @@ public class AudioService {
                         audio.getDataCriacao(),
                         audio.getTutorial().getId(),
                         audio.getVotos(),
-                        audio.getIdioma()
+                        audio.getIdioma(),
+                        audio.getAutor() != null ? audio.getAutor().getNome() : "Usuário Anônimo"
                 ))
                 .collect(Collectors.toList());
     }

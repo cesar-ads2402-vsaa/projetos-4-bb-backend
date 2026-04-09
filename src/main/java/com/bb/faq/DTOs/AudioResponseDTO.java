@@ -8,5 +8,6 @@ public record AudioResponseDTO(
         LocalDateTime dataCriacao,
         Long tutorialId,
         Integer votos,
-        String idioma
+        String idioma,
+        String nomeAutor
 ) {}
