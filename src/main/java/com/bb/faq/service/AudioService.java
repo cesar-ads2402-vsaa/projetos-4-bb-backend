@@ -27,6 +27,8 @@ public class AudioService {
     private final UsuarioRepository usuarioRepository; // <-- NOVO: Injetado para buscar o autor
     private final BlobContainerClient containerClient;
 
+
+
     public AudioService(
             AudioRepository audioRepository,
             TutorialRepository tutorialRepository,
@@ -39,7 +41,10 @@ public class AudioService {
         this.containerClient = containerClient;
     }
 
+
     public AudioResponseDTO salvarAudio(Long tutorialId, String idioma, MultipartFile arquivo) throws IOException {
+
+
 
         Tutorial tutorial = tutorialRepository.findById(tutorialId)
                 .orElseThrow(() -> new RuntimeException("Tutorial não encontrado!"));
@@ -107,10 +112,10 @@ public class AudioService {
         );
     }
 
-    public List<AudioResponseDTO> listarAudiosDoTutorial(Long tutorialId, String idioma) {
-        List<Audio> audios = audioRepository.findByTutorialIdAndIdiomaOrderByVotosDesc(tutorialId, idioma);
-
-        return audios.stream()
+    // 🟢 1. PARA A TELA NORMAL DO REACT (Busca só os aprovados)
+    public List<AudioResponseDTO> listarAudiosPorTutorialEIdioma(Long tutorialId, String idioma) {
+        return audioRepository.findByTutorialIdAndIdiomaAndAprovadoTrueOrderByVotosDesc(tutorialId, idioma)
+                .stream()
                 .map(audio -> new AudioResponseDTO(
                         audio.getId(),
                         audio.getCaminhoArquivo(),
@@ -121,5 +126,43 @@ public class AudioService {
                         audio.getAutor() != null ? audio.getAutor().getNome() : "Usuário Anônimo"
                 ))
                 .collect(Collectors.toList());
+    }
+
+    // 🟢 2. PARA O PAINEL DO ADMIN (Busca só os pendentes)
+    public List<AudioResponseDTO> listarAudiosPendentesDeAprovacao() {
+        return audioRepository.findByAprovadoFalse()
+                .stream()
+                .map(audio -> new AudioResponseDTO(
+                        audio.getId(),
+                        audio.getCaminhoArquivo(),
+                        audio.getDataCriacao(),
+                        audio.getTutorial().getId(),
+                        audio.getVotos(),
+                        audio.getIdioma(),
+                        audio.getAutor() != null ? audio.getAutor().getNome() : "Usuário Anônimo"
+                ))
+                .collect(Collectors.toList());
+    }
+
+
+    @Transactional
+    public void aprovarAudio(Long audioId) {
+        Audio audio = audioRepository.findById(audioId)
+                .orElseThrow(() -> new RuntimeException("Áudio não encontrado!"));
+
+        audio.setAprovado(true);
+        audioRepository.save(audio);
+    }
+
+
+    @Transactional
+    public void reprovarEDeletarAudio(Long audioId) {
+        Audio audio = audioRepository.findById(audioId)
+                .orElseThrow(() -> new RuntimeException("Áudio não encontrado!"));
+
+        // Aqui você pode adicionar a lógica de deletar da Azure se quiser limpar o Blob!
+        // azureBlobService.deletarArquivo(audio.getCaminhoArquivo());
+
+        audioRepository.delete(audio);
     }
 }

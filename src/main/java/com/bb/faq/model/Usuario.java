@@ -7,6 +7,11 @@ import jakarta.persistence.*;
 @Table(name = "usuarios")
 public class Usuario {
 
+    public enum Role { ADMIN, USER }
+
+    @Enumerated(EnumType.STRING)
+    private Role cargo = Role.USER; // Padrão é usuário comum
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -16,6 +21,14 @@ public class Usuario {
 
     @Column(nullable = false, unique = true)
     private String email;
+
+    public Role getCargo() {
+        return cargo;
+    }
+
+    public void setCargo(Role cargo) {
+        this.cargo = cargo;
+    }
 
     @Column(nullable = false)
     private String senha;

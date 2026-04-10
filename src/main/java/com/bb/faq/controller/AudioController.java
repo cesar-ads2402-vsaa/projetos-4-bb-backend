@@ -4,6 +4,7 @@ import com.bb.faq.DTOs.AudioResponseDTO;
 import com.bb.faq.service.AudioService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -38,6 +39,11 @@ public class AudioController {
     public List<AudioResponseDTO> buscarAudiosOrdenados(@PathVariable Long tutorialId,
                                                         @RequestParam("idioma") String idioma) {
         
-        return audioService.listarAudiosDoTutorial(tutorialId, idioma);
+        return audioService.listarAudiosPorTutorialEIdioma(tutorialId, idioma);
+    }
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deletarAudio(@PathVariable Long id) {
+        audioService.reprovarEDeletarAudio(id);
+        return ResponseEntity.noContent().build();
     }
 }

@@ -31,7 +31,15 @@ public class Audio {
     @ManyToOne
     @JoinColumn(name = "autor_id")
     private Usuario autor;
+    private boolean aprovado = false; // Áudios novos começam "escondidos"
 
+    public boolean isAprovado() {
+        return aprovado;
+    }
+
+    public void setAprovado(boolean aprovado) {
+        this.aprovado = aprovado;
+    }
 
     public Audio() {
         this.dataCriacao = LocalDateTime.now();

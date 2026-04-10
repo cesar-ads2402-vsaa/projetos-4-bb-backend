@@ -34,9 +34,8 @@ public class UsuarioService {
         Usuario novoUsuario = new Usuario();
         novoUsuario.setNome(dto.nome());
         novoUsuario.setEmail(dto.email());
-
-        // Criptografa a senha ANTES de salvar no banco
         novoUsuario.setSenha(passwordEncoder.encode(dto.senha()));
+        novoUsuario.setCargo(Usuario.Role.USER);
 
         repository.save(novoUsuario);
     }
