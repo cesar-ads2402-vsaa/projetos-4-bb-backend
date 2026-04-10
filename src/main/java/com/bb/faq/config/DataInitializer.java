@@ -23,7 +23,7 @@ public class DataInitializer implements CommandLineRunner {
         String emailAdmin = "admin@faq.com";
 
         if (usuarioRepository.findByEmail(emailAdmin).isEmpty()) {
-            System.out.println("🌱 Semeando o banco: Criando o primeiro Administrador...");
+            System.out.println("Semeando o banco: Criando o primeiro Administrador...");
 
             Usuario admin = new Usuario();
             admin.setNome("Administrador Supremo");
@@ -33,7 +33,7 @@ public class DataInitializer implements CommandLineRunner {
 
             usuarioRepository.save(admin);
 
-            System.out.println(" Admin criado com sucesso! E-mail: " + emailAdmin);
+            System.out.println("Admin criado com sucesso! E-mail: " + emailAdmin);
         }
     }
 }

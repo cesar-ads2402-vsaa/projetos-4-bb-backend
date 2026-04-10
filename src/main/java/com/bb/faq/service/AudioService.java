@@ -112,7 +112,7 @@ public class AudioService {
         );
     }
 
-    // 🟢 1. PARA A TELA NORMAL DO REACT (Busca só os aprovados)
+    // PARA A TELA NORMAL DO REACT
     public List<AudioResponseDTO> listarAudiosPorTutorialEIdioma(Long tutorialId, String idioma) {
         return audioRepository.findByTutorialIdAndIdiomaAndAprovadoTrueOrderByVotosDesc(tutorialId, idioma)
                 .stream()
@@ -128,7 +128,7 @@ public class AudioService {
                 .collect(Collectors.toList());
     }
 
-    // 🟢 2. PARA O PAINEL DO ADMIN (Busca só os pendentes)
+    // 2. PARA O PAINEL DO ADMIN 
     public List<AudioResponseDTO> listarAudiosPendentesDeAprovacao() {
         return audioRepository.findByAprovadoFalse()
                 .stream()
