@@ -1,13 +1,15 @@
 package com.bb.faq.controller;
 
-
 import com.bb.faq.DTOs.LoginDTO;
 import com.bb.faq.DTOs.RegistroDTO;
 import com.bb.faq.DTOs.TokenResponseDTO;
+import com.bb.faq.DTOs.UsuarioResponseDTO;
 import com.bb.faq.service.UsuarioService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/usuarios")
@@ -31,6 +33,16 @@ public class UsuarioController {
         return service.login(dto);
     }
 
+    @GetMapping("/comuns")
+    public ResponseEntity<List<UsuarioResponseDTO>> listarUsuariosComuns() {
+        return ResponseEntity.ok(service.listarUsuariosComuns());
+    }
+
+    @PatchMapping("/{id}/promover")
+    public ResponseEntity<Void> promoverUsuario(@PathVariable Long id) {
+        service.promoverParaAdmin(id);
+        return ResponseEntity.noContent().build();
+    }
 
     @ExceptionHandler(RuntimeException.class)
     public ResponseEntity<String> handleRuntimeException(RuntimeException ex) {
