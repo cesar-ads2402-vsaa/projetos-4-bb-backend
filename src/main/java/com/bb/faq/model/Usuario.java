@@ -7,7 +7,7 @@ import jakarta.persistence.*;
 @Table(name = "usuarios")
 public class Usuario {
 
-    public enum Role { ADMIN, USER }
+    public enum Role { SUPER_ADMIN,ADMIN, USER }
 
     @Enumerated(EnumType.STRING)
     private Role cargo = Role.USER; // Padrão é usuário comum

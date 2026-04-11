@@ -29,7 +29,7 @@ public class DataInitializer implements CommandLineRunner {
             admin.setNome("Administrador Supremo");
             admin.setEmail(emailAdmin);
             admin.setSenha(passwordEncoder.encode("senha123"));
-            admin.setCargo(Role.ADMIN);
+            admin.setCargo(Role.SUPER_ADMIN);
 
             usuarioRepository.save(admin);
 

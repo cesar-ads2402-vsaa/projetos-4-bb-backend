@@ -35,10 +35,10 @@ public class SecurityConfig {
                 .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(req -> {
                     // 1. ZONA DO ADMIN
-                    req.requestMatchers(HttpMethod.POST, "/api/tutoriais").hasRole("ADMIN");
-                    req.requestMatchers(HttpMethod.DELETE, "/api/tutoriais/**").hasRole("ADMIN");
-                    req.requestMatchers("/api/audio/moderacao/**").hasRole("ADMIN");
-                    req.requestMatchers(HttpMethod.DELETE, "/api/audio/**").hasRole("ADMIN");
+                    req.requestMatchers(HttpMethod.POST, "/api/tutoriais").hasAnyRole("ADMIN","SUPER_ADMIN");
+                    req.requestMatchers(HttpMethod.DELETE, "/api/tutoriais/**").hasAnyRole("ADMIN","SUPER_ADMIN");
+                    req.requestMatchers("/api/audio/moderacao/**").hasAnyRole("ADMIN","SUPER_ADMIN");
+                    req.requestMatchers(HttpMethod.DELETE, "/api/audio/**").hasAnyRole("ADMIN","SUPER_ADMIN");
 
                     // 2. ZONA PÚBLICA
                     req.requestMatchers(HttpMethod.GET, "/api/tutoriais").permitAll();

@@ -79,6 +79,7 @@ public class AudioService {
         novoAudio.setIdioma(idioma);
         novoAudio.setVotos(0);
         novoAudio.setAutor(autor);
+        novoAudio.setAprovado(false);
 
         Audio audioSalvo = audioRepository.save(novoAudio);
 
@@ -160,9 +161,28 @@ public class AudioService {
         Audio audio = audioRepository.findById(audioId)
                 .orElseThrow(() -> new RuntimeException("Áudio não encontrado!"));
 
-        // Aqui você pode adicionar a lógica de deletar da Azure se quiser limpar o Blob!
-        // azureBlobService.deletarArquivo(audio.getCaminhoArquivo());
+        String url = audio.getCaminhoArquivo();
+        String nomeArquivo = url.substring(url.lastIndexOf("/") + 1);
+
+        try {
+            containerClient.getBlobClient(nomeArquivo).delete();
+        } catch (Exception e) {
+            System.err.println("Aviso: Arquivo não encontrado no Azure, prosseguindo com delete no banco.");
+        }
 
         audioRepository.delete(audio);
+    }
+    public List<AudioResponseDTO> listarTodosAprovados() {
+        return audioRepository.findAll().stream()
+                .filter(Audio::isAprovado) 
+                .map(audio -> new AudioResponseDTO(
+                        audio.getId(),
+                        audio.getCaminhoArquivo(),
+                        audio.getDataCriacao(),
+                        audio.getTutorial().getId(),
+                        audio.getVotos(),
+                        audio.getIdioma(),
+                        audio.getAutor() != null ? audio.getAutor().getNome() : "Usuário"
+                )).collect(Collectors.toList());
     }
 }

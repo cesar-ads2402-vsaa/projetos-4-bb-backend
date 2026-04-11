@@ -41,8 +41,29 @@ public class AudioController {
         
         return audioService.listarAudiosPorTutorialEIdioma(tutorialId, idioma);
     }
+
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deletarAudio(@PathVariable Long id) {
+        audioService.reprovarEDeletarAudio(id);
+        return ResponseEntity.noContent().build();
+    }
+
+    @GetMapping("/moderacao/pendentes")
+    public List<AudioResponseDTO> listarPendentes() {
+        return audioService.listarAudiosPendentesDeAprovacao();
+    }
+
+    @PatchMapping("/{id}/aprovar")
+    public ResponseEntity<Void> aprovarAudio(@PathVariable Long id) {
+        audioService.aprovarAudio(id);
+        return ResponseEntity.ok().build();
+    }
+    @GetMapping("/aprovados")
+    public List<AudioResponseDTO> listarAprovados() {
+        return audioService.listarTodosAprovados();
+    }
+    @DeleteMapping("/{id}/reprovar")
+    public ResponseEntity<Void> reprovarAudio(@PathVariable Long id) {
         audioService.reprovarEDeletarAudio(id);
         return ResponseEntity.noContent().build();
     }

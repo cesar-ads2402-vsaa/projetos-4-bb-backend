@@ -9,6 +9,7 @@ import com.bb.faq.repository.UsuarioRepository;
 import jakarta.transaction.Transactional;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.security.core.context.SecurityContextHolder;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -52,13 +53,12 @@ public class UsuarioService {
 
         String token = tokenService.gerarToken(usuario);
 
-        return new TokenResponseDTO(token, usuario.getNome());
+        return new TokenResponseDTO(token, usuario.getNome(),usuario.getCargo().name());
     }
 
     // 3. LISTAR USUÁRIOS COMUNS
     public List<UsuarioResponseDTO> listarUsuariosComuns() {
-        return repository.findAll().stream()
-                .filter(usuario -> usuario.getCargo() == Usuario.Role.USER)
+        return repository.findByCargoNot(Usuario.Role.SUPER_ADMIN).stream()
                 .map(usuario -> new UsuarioResponseDTO(
                         usuario.getId(),
                         usuario.getNome(),
@@ -77,4 +77,21 @@ public class UsuarioService {
         usuario.setCargo(Usuario.Role.ADMIN);
         repository.save(usuario);
     }
+    @Transactional
+    public void rebaixarOuDeletarAdmin(Long idAlvo) {
+        Usuario usuarioLogado = (Usuario) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+
+        Usuario alvo = repository.findById(idAlvo)
+                .orElseThrow(() -> new RuntimeException("Usuário não encontrado!"));
+
+        if (alvo.getCargo() == Usuario.Role.ADMIN && usuarioLogado.getCargo() != Usuario.Role.SUPER_ADMIN) {
+            throw new RuntimeException("Acesso Negado: Apenas o SUPER_ADMIN pode alterar ou deletar outro ADMIN.");
+        }
+        alvo.setCargo(Usuario.Role.USER);
+        repository.save(alvo);
+    }
+
+
+
+
 }

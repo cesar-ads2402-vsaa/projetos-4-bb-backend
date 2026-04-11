@@ -48,6 +48,7 @@ public class SecurityFilter extends OncePerRequestFilter {
                     // No SecurityFilter.java, mude a linha da autoridade:
                     var permissoes = List.of(new SimpleGrantedAuthority("ROLE_" + usuario.getCargo().name()));
                     var authentication = new UsernamePasswordAuthenticationToken(usuario, null, permissoes);
+                    SecurityContextHolder.getContext().setAuthentication(authentication);
                 }
             }
         }
