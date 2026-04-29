@@ -1,9 +1,13 @@
 package com.bb.faq.service;
 
+import com.azure.storage.blob.BlobClient;
+import com.azure.storage.blob.BlobContainerClient;
 import com.bb.faq.DTOs.TutorialRequestDTO;
 import com.bb.faq.DTOs.TutorialResponseDTO;
+import com.bb.faq.model.Audio;
 import com.bb.faq.model.Tutorial;
 import com.bb.faq.repository.TutorialRepository;
+import jakarta.transaction.Transactional;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -12,47 +16,61 @@ import java.util.stream.Collectors;
 @Service
 public class TutorialService {
 
-    private final TutorialRepository repository;
+    private final TutorialRepository tutorialRepository;
+    private final BlobContainerClient containerClient;
 
-
-    public TutorialService(TutorialRepository repository) {
-        this.repository = repository;
+    public TutorialService(TutorialRepository tutorialRepository, BlobContainerClient containerClient) {
+        this.tutorialRepository = tutorialRepository;
+        this.containerClient = containerClient;
     }
 
-    // 1. Listar todos os GETs
+
     public List<TutorialResponseDTO> listarTodos() {
-
-        List<Tutorial> tutoriais = repository.findAll();
-
-
-        return tutoriais.stream()
-                .map(tutorial -> new TutorialResponseDTO(
-                        tutorial.getId(),
-                        tutorial.getPergunta(),
-                        tutorial.getYoutubeUrl(),
-                        tutorial.getDataCriacao()
+        return tutorialRepository.findAll()
+                .stream()
+                .map(t -> new TutorialResponseDTO(
+                        t.getId(),
+                        t.getPergunta(),
+                        t.getYoutubeUrl(),
+                        t.getDataCriacao()
                 ))
                 .collect(Collectors.toList());
     }
 
-    // 2. Criar novo tutorial
-    public TutorialResponseDTO criar(TutorialRequestDTO dto) {
 
-        // Transformar o DTO (que veio do Next.js) numa Entidade vazia
+    @Transactional
+    public TutorialResponseDTO criarTutorial(TutorialRequestDTO dto) {
+
+
         Tutorial novoTutorial = new Tutorial();
         novoTutorial.setPergunta(dto.pergunta());
         novoTutorial.setYoutubeUrl(dto.youtubeUrl());
-        // (O ID e a data de criação são gerados automaticamente, não precisamos de os colocar aqui)
 
-        // Mandar o Repository guardar na base de dados
-        Tutorial tutorialGuardado = repository.save(novoTutorial);
+        Tutorial tutorialSalvo = tutorialRepository.save(novoTutorial);
 
-        // Transformar a Entidade guardada (agora já com ID) num ResponseDTO para devolver ao Next.js
         return new TutorialResponseDTO(
-                tutorialGuardado.getId(),
-                tutorialGuardado.getPergunta(),
-                tutorialGuardado.getYoutubeUrl(),
-                tutorialGuardado.getDataCriacao()
+                tutorialSalvo.getId(),
+                tutorialSalvo.getPergunta(),
+                tutorialSalvo.getYoutubeUrl(),
+                tutorialSalvo.getDataCriacao()
         );
+    }
+
+    @Transactional
+    public void deletarTutorial(Long tutorialId) {
+        Tutorial tutorial = tutorialRepository.findById(tutorialId)
+                .orElseThrow(() -> new RuntimeException("Tutorial não encontrado!"));
+
+        for (Audio audio : tutorial.getAudios()) {
+            if (audio.getCaminhoArquivo() != null) {
+                String nomeArquivoNaAzure = audio.getCaminhoArquivo().substring(
+                        audio.getCaminhoArquivo().lastIndexOf("/") + 1
+                );
+                BlobClient blobClient = containerClient.getBlobClient(nomeArquivoNaAzure);
+                blobClient.deleteIfExists();
+            }
+        }
+
+        tutorialRepository.delete(tutorial);
     }
 }

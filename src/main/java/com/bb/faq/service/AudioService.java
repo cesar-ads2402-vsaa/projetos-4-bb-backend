@@ -24,8 +24,10 @@ public class AudioService {
 
     private final AudioRepository audioRepository;
     private final TutorialRepository tutorialRepository;
-    private final UsuarioRepository usuarioRepository; // <-- NOVO: Injetado para buscar o autor
+    private final UsuarioRepository usuarioRepository;
     private final BlobContainerClient containerClient;
+
+
 
     public AudioService(
             AudioRepository audioRepository,
@@ -35,11 +37,14 @@ public class AudioService {
 
         this.audioRepository = audioRepository;
         this.tutorialRepository = tutorialRepository;
-        this.usuarioRepository = usuarioRepository; // <-- NOVO: Inicializado
+        this.usuarioRepository = usuarioRepository;
         this.containerClient = containerClient;
     }
 
+
     public AudioResponseDTO salvarAudio(Long tutorialId, String idioma, MultipartFile arquivo) throws IOException {
+
+
 
         Tutorial tutorial = tutorialRepository.findById(tutorialId)
                 .orElseThrow(() -> new RuntimeException("Tutorial não encontrado!"));
@@ -50,8 +55,12 @@ public class AudioService {
         }
 
         String nomeOriginal = arquivo.getOriginalFilename();
-        if (nomeOriginal == null || (!nomeOriginal.endsWith(".webm") && !nomeOriginal.endsWith(".mp3") && !nomeOriginal.endsWith(".ogg"))) {
-            throw new IllegalArgumentException("Extensão não suportada! Grave em .webm, .mp3 ou .ogg.");
+        if (nomeOriginal == null || (!nomeOriginal.endsWith(".webm") && !nomeOriginal.endsWith(".mp3")
+                && !nomeOriginal.endsWith(".ogg")
+                && !nomeOriginal.endsWith(".aac")&& !nomeOriginal.endsWith(".mp4")
+                && !nomeOriginal.endsWith(".wav")&& !nomeOriginal.endsWith(".amr")
+                && !nomeOriginal.endsWith(".m4a"))) {
+            throw new IllegalArgumentException("Extensão não suportada!");
         }
 
 
@@ -74,6 +83,7 @@ public class AudioService {
         novoAudio.setIdioma(idioma);
         novoAudio.setVotos(0);
         novoAudio.setAutor(autor);
+        novoAudio.setAprovado(false);
 
         Audio audioSalvo = audioRepository.save(novoAudio);
 
@@ -107,10 +117,10 @@ public class AudioService {
         );
     }
 
-    public List<AudioResponseDTO> listarAudiosDoTutorial(Long tutorialId, String idioma) {
-        List<Audio> audios = audioRepository.findByTutorialIdAndIdiomaOrderByVotosDesc(tutorialId, idioma);
-
-        return audios.stream()
+    // PARA A TELA NORMAL DO REACT
+    public List<AudioResponseDTO> listarAudiosPorTutorialEIdioma(Long tutorialId, String idioma) {
+        return audioRepository.findByTutorialIdAndIdiomaAndAprovadoTrueOrderByVotosDesc(tutorialId, idioma)
+                .stream()
                 .map(audio -> new AudioResponseDTO(
                         audio.getId(),
                         audio.getCaminhoArquivo(),
@@ -121,5 +131,62 @@ public class AudioService {
                         audio.getAutor() != null ? audio.getAutor().getNome() : "Usuário Anônimo"
                 ))
                 .collect(Collectors.toList());
+    }
+
+    // 2. PARA O PAINEL DO ADMIN 
+    public List<AudioResponseDTO> listarAudiosPendentesDeAprovacao() {
+        return audioRepository.findByAprovadoFalse()
+                .stream()
+                .map(audio -> new AudioResponseDTO(
+                        audio.getId(),
+                        audio.getCaminhoArquivo(),
+                        audio.getDataCriacao(),
+                        audio.getTutorial().getId(),
+                        audio.getVotos(),
+                        audio.getIdioma(),
+                        audio.getAutor() != null ? audio.getAutor().getNome() : "Usuário Anônimo"
+                ))
+                .collect(Collectors.toList());
+    }
+
+
+    @Transactional
+    public void aprovarAudio(Long audioId) {
+        Audio audio = audioRepository.findById(audioId)
+                .orElseThrow(() -> new RuntimeException("Áudio não encontrado!"));
+
+        audio.setAprovado(true);
+        audioRepository.save(audio);
+    }
+
+
+    @Transactional
+    public void reprovarEDeletarAudio(Long audioId) {
+        Audio audio = audioRepository.findById(audioId)
+                .orElseThrow(() -> new RuntimeException("Áudio não encontrado!"));
+
+        String url = audio.getCaminhoArquivo();
+        String nomeArquivo = url.substring(url.lastIndexOf("/") + 1);
+
+        try {
+            containerClient.getBlobClient(nomeArquivo).delete();
+        } catch (Exception e) {
+            System.err.println("Aviso: Arquivo não encontrado no Azure, prosseguindo com delete no banco.");
+        }
+
+        audioRepository.delete(audio);
+    }
+    public List<AudioResponseDTO> listarTodosAprovados() {
+        return audioRepository.findAll().stream()
+                .filter(Audio::isAprovado) 
+                .map(audio -> new AudioResponseDTO(
+                        audio.getId(),
+                        audio.getCaminhoArquivo(),
+                        audio.getDataCriacao(),
+                        audio.getTutorial().getId(),
+                        audio.getVotos(),
+                        audio.getIdioma(),
+                        audio.getAutor() != null ? audio.getAutor().getNome() : "Usuário"
+                )).collect(Collectors.toList());
     }
 }

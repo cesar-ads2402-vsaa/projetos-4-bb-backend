@@ -5,8 +5,10 @@ import jakarta.persistence.Id;
 
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
-    @Entity
+@Entity
     @Table(name = "tutoriais")
     public class Tutorial {
 
@@ -23,8 +25,11 @@ import java.time.LocalDateTime;
         @Column(name = "data_criacao")
         private LocalDateTime dataCriacao;
 
+        @OneToMany(mappedBy = "tutorial", cascade = CascadeType.REMOVE, orphanRemoval = true)
+        private List<Audio> audios = new ArrayList<>();
 
-        public Tutorial() {
+
+    public Tutorial() {
             this.dataCriacao = LocalDateTime.now();
         }
 
@@ -40,5 +45,9 @@ import java.time.LocalDateTime;
 
         public LocalDateTime getDataCriacao() { return dataCriacao; }
         public void setDataCriacao(LocalDateTime dataCriacao) { this.dataCriacao = dataCriacao; }
-    }
+
+        public List<Audio> getAudios() {return audios;}
+
+        public void setAudios(List<Audio> audios) {this.audios = audios;}
+}
 

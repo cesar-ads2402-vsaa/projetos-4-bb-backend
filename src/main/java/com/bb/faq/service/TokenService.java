@@ -17,7 +17,6 @@ import java.time.temporal.ChronoUnit;
 @Service
 public class TokenService {
 
-    // Pega a senha secreta do application.properties
     @Value("${api.security.token.secret}")
     private String secret;
 
@@ -25,21 +24,20 @@ public class TokenService {
         try {
             Algorithm algoritmo = Algorithm.HMAC256(secret);
             return JWT.create()
-                    .withIssuer("faq-api") // Quem emitiu o token
-                    .withSubject(usuario.getEmail()) // Quem é o dono do token (vamos usar o e-mail como identificador)
-                    .withClaim("id", usuario.getId()) // Guardamos o ID dentro do crachá para facilitar depois!
-                    .withExpiresAt(gerarDataExpiracao()) // Crachá tem validade
-                    .sign(algoritmo); // Assina e carimba
+                    .withIssuer("faq-api")
+                    .withSubject(usuario.getEmail())
+                    .withClaim("id", usuario.getId())
+                    .withExpiresAt(gerarDataExpiracao())
+                    .sign(algoritmo);
         } catch (JWTCreationException exception) {
             throw new RuntimeException("Erro ao gerar token JWT", exception);
         }
     }
 
-    // O token vale por 2 horas. Depois disso, o usuário tem que logar de novo.
     private Instant gerarDataExpiracao() {
         return LocalDateTime.now().plusHours(2).toInstant(ZoneOffset.of("-03:00"));
     }
-    // NOVO MÉTODO: Ensina o sistema a ler o crachá e descobrir de quem é
+
     public String getSubject(String tokenJWT) {
         try {
             Algorithm algoritmo = Algorithm.HMAC256(secret);
@@ -47,9 +45,9 @@ public class TokenService {
                     .withIssuer("faq-api")
                     .build()
                     .verify(tokenJWT)
-                    .getSubject(); // Devolve o e-mail que guardamos no token
+                    .getSubject();
         } catch (Exception exception) {
-            // Se o token for inválido, expirado ou falso, retorna vazio
+
             return "";
         }
     }

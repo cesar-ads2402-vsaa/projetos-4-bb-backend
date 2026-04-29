@@ -5,7 +5,7 @@ import java.util.List;
 
 public interface AudioRepository extends JpaRepository<Audio, Long> {
 
-
-    List<Audio> findByTutorialIdAndIdiomaOrderByVotosDesc(Long tutorialId, String idioma);
-
+    List<Audio> findByTutorialIdAndIdiomaAndAprovadoTrueOrderByVotosDesc(Long tutorialId, String idioma);
+    List<Audio> findByAprovadoFalse();
 }
+
