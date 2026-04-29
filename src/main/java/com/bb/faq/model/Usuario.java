@@ -10,7 +10,7 @@ public class Usuario {
     public enum Role { SUPER_ADMIN,ADMIN, USER }
 
     @Enumerated(EnumType.STRING)
-    private Role cargo = Role.USER; // Padrão é usuário comum
+    private Role cargo = Role.USER;
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -33,7 +33,7 @@ public class Usuario {
     @Column(nullable = false)
     private String senha;
 
-    // Getters e Setters
+
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
 

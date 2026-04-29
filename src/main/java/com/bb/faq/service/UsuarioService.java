@@ -27,7 +27,7 @@ public class UsuarioService {
         this.tokenService = tokenService;
     }
 
-    // 1. REGISTRAR
+
     public void registrar(RegistroDTO dto) {
         if (repository.findByEmail(dto.email()).isPresent()) {
             throw new RuntimeException("Este e-mail já está cadastrado!");
@@ -42,7 +42,7 @@ public class UsuarioService {
         repository.save(novoUsuario);
     }
 
-    // 2. FAZER LOGIN
+
     public TokenResponseDTO login(LoginDTO dto) {
         Usuario usuario = repository.findByEmail(dto.email())
                 .orElseThrow(() -> new RuntimeException("Usuário não encontrado!"));
@@ -56,7 +56,6 @@ public class UsuarioService {
         return new TokenResponseDTO(token, usuario.getNome(),usuario.getCargo().name());
     }
 
-    // 3. LISTAR USUÁRIOS COMUNS
     public List<UsuarioResponseDTO> listarUsuariosComuns() {
         return repository.findByCargoNot(Usuario.Role.SUPER_ADMIN).stream()
                 .map(usuario -> new UsuarioResponseDTO(
@@ -68,7 +67,6 @@ public class UsuarioService {
                 .collect(Collectors.toList());
     }
 
-    // 4. PROMOVER A ADMIN
     @Transactional
     public void promoverParaAdmin(Long id) {
         Usuario usuario = repository.findById(id)

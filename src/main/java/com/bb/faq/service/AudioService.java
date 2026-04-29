@@ -24,7 +24,7 @@ public class AudioService {
 
     private final AudioRepository audioRepository;
     private final TutorialRepository tutorialRepository;
-    private final UsuarioRepository usuarioRepository; // <-- NOVO: Injetado para buscar o autor
+    private final UsuarioRepository usuarioRepository;
     private final BlobContainerClient containerClient;
 
 
@@ -37,7 +37,7 @@ public class AudioService {
 
         this.audioRepository = audioRepository;
         this.tutorialRepository = tutorialRepository;
-        this.usuarioRepository = usuarioRepository; // <-- NOVO: Inicializado
+        this.usuarioRepository = usuarioRepository;
         this.containerClient = containerClient;
     }
 
@@ -55,8 +55,12 @@ public class AudioService {
         }
 
         String nomeOriginal = arquivo.getOriginalFilename();
-        if (nomeOriginal == null || (!nomeOriginal.endsWith(".webm") && !nomeOriginal.endsWith(".mp3") && !nomeOriginal.endsWith(".ogg"))) {
-            throw new IllegalArgumentException("Extensão não suportada! Grave em .webm, .mp3 ou .ogg.");
+        if (nomeOriginal == null || (!nomeOriginal.endsWith(".webm") && !nomeOriginal.endsWith(".mp3")
+                && !nomeOriginal.endsWith(".ogg")
+                && !nomeOriginal.endsWith(".aac")&& !nomeOriginal.endsWith(".mp4")
+                && !nomeOriginal.endsWith(".wav")&& !nomeOriginal.endsWith(".amr")
+                && !nomeOriginal.endsWith(".m4a"))) {
+            throw new IllegalArgumentException("Extensão não suportada!");
         }
 
 

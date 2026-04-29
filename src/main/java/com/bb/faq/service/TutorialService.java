@@ -37,7 +37,6 @@ public class TutorialService {
                 .collect(Collectors.toList());
     }
 
-    // 2. METODOS DE ADMIN
 
     @Transactional
     public TutorialResponseDTO criarTutorial(TutorialRequestDTO dto) {
