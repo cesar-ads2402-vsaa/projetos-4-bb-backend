@@ -1,9 +1,6 @@
 package com.bb.faq.controller;
 
-import com.bb.faq.DTOs.LoginDTO;
-import com.bb.faq.DTOs.RegistroDTO;
-import com.bb.faq.DTOs.TokenResponseDTO;
-import com.bb.faq.DTOs.UsuarioResponseDTO;
+import com.bb.faq.DTOs.*;
 import com.bb.faq.service.UsuarioService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -53,5 +50,11 @@ public class UsuarioController {
     @GetMapping("/comuns")
     public List<UsuarioResponseDTO> buscarUsuarios() {
         return service.listarUsuariosComuns();
+    }
+
+    @PutMapping("/trocar-senha")
+    public ResponseEntity<String> trocarSenha(@RequestBody TrocarSenhaDTO dto) {
+        service.trocarSenha(dto);
+        return ResponseEntity.ok("Senha alterada com sucesso!");
     }
 }

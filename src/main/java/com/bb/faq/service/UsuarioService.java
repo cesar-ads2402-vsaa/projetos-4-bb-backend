@@ -1,12 +1,10 @@
 package com.bb.faq.service;
 
-import com.bb.faq.DTOs.LoginDTO;
-import com.bb.faq.DTOs.RegistroDTO;
-import com.bb.faq.DTOs.TokenResponseDTO;
-import com.bb.faq.DTOs.UsuarioResponseDTO;
+import com.bb.faq.DTOs.*;
 import com.bb.faq.model.Usuario;
 import com.bb.faq.repository.UsuarioRepository;
 import jakarta.transaction.Transactional;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -77,19 +75,48 @@ public class UsuarioService {
     }
     @Transactional
     public void rebaixarOuDeletarAdmin(Long idAlvo) {
-        Usuario usuarioLogado = (Usuario) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null || !authentication.isAuthenticated() || !(authentication.getPrincipal() instanceof Usuario)) {
+            throw new RuntimeException("Acesso negado: Usuário não autenticado.");
+        }
+        Usuario usuarioLogado = (Usuario) authentication.getPrincipal();
 
         Usuario alvo = repository.findById(idAlvo)
-                .orElseThrow(() -> new RuntimeException("Usuário não encontrado!"));
+                .orElseThrow(() -> new RuntimeException("Usuário alvo não encontrado!"));
+
+        if (alvo.getCargo() == Usuario.Role.SUPER_ADMIN) {
+            throw new RuntimeException("Acesso Negado: O SUPER_ADMIN não pode ser rebaixado ou alterado.");
+        }
 
         if (alvo.getCargo() == Usuario.Role.ADMIN && usuarioLogado.getCargo() != Usuario.Role.SUPER_ADMIN) {
-            throw new RuntimeException("Acesso Negado: Apenas o SUPER_ADMIN pode alterar ou deletar outro ADMIN.");
+            throw new RuntimeException("Acesso Negado: Apenas o SUPER_ADMIN pode rebaixar outro ADMIN.");
         }
+
         alvo.setCargo(Usuario.Role.USER);
         repository.save(alvo);
     }
 
+    @Transactional
+    public void trocarSenha(TrocarSenhaDTO dto) {
 
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null || !authentication.isAuthenticated() || !(authentication.getPrincipal() instanceof Usuario)) {
+            throw new RuntimeException("Acesso negado: Usuário não autenticado.");
+        }
 
+        Usuario usuarioSessao = (Usuario) authentication.getPrincipal();
 
+        Usuario usuarioBanco = repository.findById(usuarioSessao.getId())
+                .orElseThrow(() -> new RuntimeException("Usuário não encontrado no banco de dados!"));
+
+        if (!passwordEncoder.matches(dto.senhaAtual(), usuarioBanco.getSenha())) {
+            throw new RuntimeException("A senha atual informada está incorreta!");
+        }
+
+        String novaSenhaCriptografada = passwordEncoder.encode(dto.novaSenha());
+        usuarioBanco.setSenha(novaSenhaCriptografada);
+
+        repository.save(usuarioBanco);
+    }
 }

@@ -10,6 +10,7 @@ import com.bb.faq.repository.AudioRepository;
 import com.bb.faq.repository.TutorialRepository;
 import com.bb.faq.repository.UsuarioRepository;
 import jakarta.transaction.Transactional;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
@@ -64,13 +65,19 @@ public class AudioService {
         }
 
 
-        Usuario usuarioSessao = (Usuario) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+
+        if (authentication == null || !authentication.isAuthenticated() || !(authentication.getPrincipal() instanceof Usuario)) {
+            throw new RuntimeException("Acesso negado: Usuário não autenticado ou token inválido!");
+        }
+
+        Usuario usuarioSessao = (Usuario) authentication.getPrincipal();
 
         Usuario autor = usuarioRepository.findByEmail(usuarioSessao.getEmail())
                 .orElseThrow(() -> new RuntimeException("Usuário logado não encontrado no banco de dados!"));
 
         String extensao = nomeOriginal.substring(nomeOriginal.lastIndexOf("."));
-        String nomeArquivoUnico = UUID.randomUUID().toString() + extensao;
+        String nomeArquivoUnico = UUID.randomUUID() + extensao;
 
 
         BlobClient blobClient = containerClient.getBlobClient(nomeArquivoUnico);
