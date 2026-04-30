@@ -46,6 +46,8 @@ public class SecurityConfig {
                     req.requestMatchers(HttpMethod.GET, "/api/audio/**").permitAll();
                     req.requestMatchers(HttpMethod.POST, "/api/usuarios/login").permitAll();
                     req.requestMatchers(HttpMethod.POST, "/api/usuarios/cadastro").permitAll();
+                    req.requestMatchers(HttpMethod.POST, "/api/usuarios/esqueci-senha").permitAll();
+                    req.requestMatchers(HttpMethod.POST, "/api/usuarios/resetar-senha").permitAll();
 
                     // 3. CORS E ERROS
                     req.requestMatchers(HttpMethod.OPTIONS, "/**").permitAll();
@@ -53,6 +55,8 @@ public class SecurityConfig {
 
                     // 🟡 4. ZONA DO USUÁRIO LOGADO (Gravar áudio, dar like, etc)
                     req.anyRequest().authenticated();
+
+
                 })
                 // A MÁGICA ACONTECE AQUI: Coloca o nosso filtro ANTES do filtro padrão do Spring
                 .addFilterBefore(securityFilter, UsernamePasswordAuthenticationFilter.class)
