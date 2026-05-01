@@ -1,6 +1,7 @@
 package com.bb.faq.controller;
 
 import com.bb.faq.DTOs.*;
+import com.bb.faq.service.PasswordResetService;
 import com.bb.faq.service.UsuarioService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -14,9 +15,11 @@ import java.util.List;
 public class UsuarioController {
 
     private final UsuarioService service;
+    private final PasswordResetService password;
 
-    public UsuarioController(UsuarioService service) {
+    public UsuarioController(UsuarioService service, PasswordResetService password) {
         this.service = service;
+        this.password = password;
     }
 
     @PostMapping("/cadastro")
@@ -56,5 +59,17 @@ public class UsuarioController {
     public ResponseEntity<String> trocarSenha(@RequestBody TrocarSenhaDTO dto) {
         service.trocarSenha(dto);
         return ResponseEntity.ok("Senha alterada com sucesso!");
+    }
+
+    @PostMapping("/esqueci-senha")
+    public ResponseEntity<String> solicitarRecuperacao(@RequestBody EsqueciSenhaDTO dto) {
+        password.solicitarRecuperacaoSenha(dto.email());
+        return ResponseEntity.ok("Se o e-mail estiver cadastrado, você receberá um link de recuperação em instantes.");
+    }
+
+    @PostMapping("/resetar-senha")
+    public ResponseEntity<String> resetarSenha(@RequestBody ResetarSenhaDTO dto) {
+        password.resetarSenha(dto.token(), dto.novaSenha());
+        return ResponseEntity.ok("Sua senha foi alterada com sucesso! Você já pode fazer login.");
     }
 }

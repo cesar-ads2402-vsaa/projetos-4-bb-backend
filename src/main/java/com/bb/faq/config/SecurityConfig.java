@@ -39,6 +39,8 @@ public class SecurityConfig {
                     req.requestMatchers(HttpMethod.DELETE, "/api/tutoriais/**").hasAnyRole("ADMIN","SUPER_ADMIN");
                     req.requestMatchers("/api/audio/moderacao/**").hasAnyRole("ADMIN","SUPER_ADMIN");
                     req.requestMatchers(HttpMethod.DELETE, "/api/audio/**").hasAnyRole("ADMIN","SUPER_ADMIN");
+                    req.requestMatchers(HttpMethod.POST, "/api/idiomas").hasAnyRole("ADMIN","SUPER_ADMIN");
+                    req.requestMatchers(HttpMethod.DELETE, "/api/idiomas/**").hasAnyRole("ADMIN","SUPER_ADMIN");
 
                     // 2. ZONA PÚBLICA
                     req.requestMatchers(HttpMethod.GET, "/api/tutoriais").permitAll();
@@ -46,6 +48,10 @@ public class SecurityConfig {
                     req.requestMatchers(HttpMethod.GET, "/api/audio/**").permitAll();
                     req.requestMatchers(HttpMethod.POST, "/api/usuarios/login").permitAll();
                     req.requestMatchers(HttpMethod.POST, "/api/usuarios/cadastro").permitAll();
+                    req.requestMatchers(HttpMethod.POST, "/api/usuarios/esqueci-senha").permitAll();
+                    req.requestMatchers(HttpMethod.POST, "/api/usuarios/resetar-senha").permitAll();
+                    req.requestMatchers(HttpMethod.GET, "/api/idiomas").permitAll();
+                    
 
                     // 3. CORS E ERROS
                     req.requestMatchers(HttpMethod.OPTIONS, "/**").permitAll();
@@ -53,6 +59,8 @@ public class SecurityConfig {
 
                     // 🟡 4. ZONA DO USUÁRIO LOGADO (Gravar áudio, dar like, etc)
                     req.anyRequest().authenticated();
+
+
                 })
                 // A MÁGICA ACONTECE AQUI: Coloca o nosso filtro ANTES do filtro padrão do Spring
                 .addFilterBefore(securityFilter, UsernamePasswordAuthenticationFilter.class)
