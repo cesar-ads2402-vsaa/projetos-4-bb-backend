@@ -15,6 +15,13 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
+import ws.schild.jave.Encoder;
+import ws.schild.jave.MultimediaObject;
+import ws.schild.jave.encode.AudioAttributes;
+import ws.schild.jave.encode.EncodingAttributes;
+import java.io.File;
+import java.io.FileInputStream;
+
 import java.io.IOException;
 import java.util.List;
 import java.util.UUID;
@@ -45,64 +52,72 @@ public class AudioService {
 
     public AudioResponseDTO salvarAudio(Long tutorialId, String idioma, MultipartFile arquivo) throws IOException {
 
-
-
         Tutorial tutorial = tutorialRepository.findById(tutorialId)
                 .orElseThrow(() -> new RuntimeException("Tutorial não encontrado!"));
 
-        String contentType = arquivo.getContentType();
-        if (contentType == null || !contentType.startsWith("audio/")) {
-            throw new IllegalArgumentException("Formato inválido! Apenas ficheiros de áudio são permitidos.");
-        }
-
-        String nomeOriginal = arquivo.getOriginalFilename();
-        if (nomeOriginal == null || (!nomeOriginal.endsWith(".webm") && !nomeOriginal.endsWith(".mp3")
-                && !nomeOriginal.endsWith(".ogg")
-                && !nomeOriginal.endsWith(".aac")&& !nomeOriginal.endsWith(".mp4")
-                && !nomeOriginal.endsWith(".wav")&& !nomeOriginal.endsWith(".amr")
-                && !nomeOriginal.endsWith(".m4a"))) {
-            throw new IllegalArgumentException("Extensão não suportada!");
-        }
-
-
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-
         if (authentication == null || !authentication.isAuthenticated() || !(authentication.getPrincipal() instanceof Usuario)) {
             throw new RuntimeException("Acesso negado: Usuário não autenticado ou token inválido!");
         }
 
         Usuario usuarioSessao = (Usuario) authentication.getPrincipal();
-
         Usuario autor = usuarioRepository.findByEmail(usuarioSessao.getEmail())
-                .orElseThrow(() -> new RuntimeException("Usuário logado não encontrado no banco de dados!"));
+                .orElseThrow(() -> new RuntimeException("Usuário logado não encontrado!"));
 
-        String extensao = nomeOriginal.substring(nomeOriginal.lastIndexOf("."));
-        String nomeArquivoUnico = UUID.randomUUID() + extensao;
+        File tempInput = File.createTempFile("upload-", "-original");
+        File tempOutput = File.createTempFile("convertido-", ".mp3");
 
+        try {
 
-        BlobClient blobClient = containerClient.getBlobClient(nomeArquivoUnico);
-        blobClient.upload(arquivo.getInputStream(), arquivo.getSize(), true);
-        String urlDoAudioNaNuvem = blobClient.getBlobUrl();
+            arquivo.transferTo(tempInput);
 
-        Audio novoAudio = new Audio();
-        novoAudio.setCaminhoArquivo(urlDoAudioNaNuvem);
-        novoAudio.setTutorial(tutorial);
-        novoAudio.setIdioma(idioma);
-        novoAudio.setVotos(0);
-        novoAudio.setAutor(autor);
-        novoAudio.setAprovado(false);
+            AudioAttributes audioAttr = new AudioAttributes();
+            audioAttr.setCodec("libmp3lame");
+            audioAttr.setBitRate(128000); // 128 kbps (Ótima qualidade para voz)
+            audioAttr.setChannels(2);
+            audioAttr.setSamplingRate(44100);
 
-        Audio audioSalvo = audioRepository.save(novoAudio);
+            EncodingAttributes attrs = new EncodingAttributes();
+            attrs.setOutputFormat("mp3");
+            attrs.setAudioAttributes(audioAttr);
 
-        return new AudioResponseDTO(
-                audioSalvo.getId(),
-                audioSalvo.getCaminhoArquivo(),
-                audioSalvo.getDataCriacao(),
-                audioSalvo.getTutorial().getId(),
-                audioSalvo.getVotos(),
-                audioSalvo.getIdioma(),
-                audioSalvo.getAutor() != null ? audioSalvo.getAutor().getNome() : "Usuário Anônimo"
-        );
+            Encoder encoder = new Encoder();
+            encoder.encode(new MultimediaObject(tempInput), tempOutput, attrs);
+
+            String nomeArquivoUnico = UUID.randomUUID() + ".mp3";
+            BlobClient blobClient = containerClient.getBlobClient(nomeArquivoUnico);
+
+            try (FileInputStream fis = new FileInputStream(tempOutput)) {
+                blobClient.upload(fis, tempOutput.length(), true);
+            }
+            String urlDoAudioNaNuvem = blobClient.getBlobUrl();
+
+            Audio novoAudio = new Audio();
+            novoAudio.setCaminhoArquivo(urlDoAudioNaNuvem);
+            novoAudio.setTutorial(tutorial);
+            novoAudio.setIdioma(idioma);
+            novoAudio.setVotos(0);
+            novoAudio.setAutor(autor);
+            novoAudio.setAprovado(false);
+
+            Audio audioSalvo = audioRepository.save(novoAudio);
+
+            return new AudioResponseDTO(
+                    audioSalvo.getId(),
+                    audioSalvo.getCaminhoArquivo(),
+                    audioSalvo.getDataCriacao(),
+                    audioSalvo.getTutorial().getId(),
+                    audioSalvo.getVotos(),
+                    audioSalvo.getIdioma(),
+                    audioSalvo.getAutor() != null ? audioSalvo.getAutor().getNome() : "Usuário Anônimo"
+            );
+
+        } catch (Exception e) {
+            throw new RuntimeException("Falha ao converter ou salvar o áudio: " + e.getMessage(), e);
+        } finally {
+            if (tempInput.exists()) tempInput.delete();
+            if (tempOutput.exists()) tempOutput.delete();
+        }
     }
 
     @Transactional
