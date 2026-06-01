@@ -33,11 +33,12 @@ class TutorialControllerTest {
 
     @BeforeEach
     void setup() {
-        tutorialRequest = new TutorialRequestDTO("Como usar o app?", "https://youtube.com/watch?v=abc");
+        tutorialRequest = new TutorialRequestDTO("Como usar o app?", "https://youtube.com/watch?v=abc","App BB");
         tutorialResponse = new TutorialResponseDTO(
                 1L,
                 "Como usar o app?",
                 "https://youtube.com/watch?v=abc",
+                "App BB",
                 LocalDateTime.now()
         );
     }

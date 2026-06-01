@@ -39,6 +39,7 @@ public class TutorialServiceTest {
         tutorialMock.setId(1L);
         tutorialMock.setPergunta("Como acessar o contracheque?");
         tutorialMock.setYoutubeUrl("https://youtube.com/exemplo");
+        tutorialMock.setCategoria("Como acessar o contracheque?");
         tutorialMock.setDataCriacao(LocalDateTime.now());
 
         when(tutorialRepository.findAll()).thenReturn(List.of(tutorialMock));
@@ -50,19 +51,22 @@ public class TutorialServiceTest {
         assertEquals(1L, resultado.get(0).id());
         assertEquals("Como acessar o contracheque?", resultado.get(0).pergunta());
         assertEquals("https://youtube.com/exemplo", resultado.get(0).youtubeUrl());
+        assertEquals("Como acessar o contracheque?", resultado.get(0).categoria());
     }
 
     @Test
     void deveCriarTutorialComSucesso() {
         TutorialRequestDTO requestDTO = new TutorialRequestDTO(
                 "Como alterar a senha do sistema?",
-                "https://youtube.com/senha"
+                "https://youtube.com/senha",
+                "Senhas"
         );
 
         Tutorial tutorialSalvo = new Tutorial();
         tutorialSalvo.setId(2L);
         tutorialSalvo.setPergunta(requestDTO.pergunta());
         tutorialSalvo.setYoutubeUrl(requestDTO.youtubeUrl());
+        tutorialSalvo.setCategoria(requestDTO.categoria());
         tutorialSalvo.setDataCriacao(LocalDateTime.now());
 
         when(tutorialRepository.save(any(Tutorial.class))).thenReturn(tutorialSalvo);
@@ -72,6 +76,7 @@ public class TutorialServiceTest {
         assertNotNull(resultado);
         assertEquals(2L, resultado.id());
         assertEquals("Como alterar a senha do sistema?", resultado.pergunta());
+        assertEquals("Senhas", resultado.categoria());
         verify(tutorialRepository, times(1)).save(any(Tutorial.class));
     }
 

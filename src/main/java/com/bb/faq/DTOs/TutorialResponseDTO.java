@@ -6,6 +6,7 @@ public record TutorialResponseDTO(
         Long id,
         String pergunta,
         String youtubeUrl,
+        String categoria,
         LocalDateTime dataCriacao
 ) {
 }

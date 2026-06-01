@@ -25,6 +25,10 @@ import java.util.List;
         @Column(name = "data_criacao")
         private LocalDateTime dataCriacao;
 
+        @Column(name = "categoria")
+        private String categoria;
+
+
         @OneToMany(mappedBy = "tutorial", cascade = CascadeType.REMOVE, orphanRemoval = true)
         private List<Audio> audios = new ArrayList<>();
 
@@ -49,5 +53,8 @@ import java.util.List;
         public List<Audio> getAudios() {return audios;}
 
         public void setAudios(List<Audio> audios) {this.audios = audios;}
+
+        public String getCategoria() { return categoria; }
+        public void setCategoria(String categoria) { this.categoria = categoria; }
 }
 

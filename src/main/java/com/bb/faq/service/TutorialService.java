@@ -32,6 +32,7 @@ public class TutorialService {
                         t.getId(),
                         t.getPergunta(),
                         t.getYoutubeUrl(),
+                        t.getCategoria(),
                         t.getDataCriacao()
                 ))
                 .collect(Collectors.toList());
@@ -45,6 +46,7 @@ public class TutorialService {
         Tutorial novoTutorial = new Tutorial();
         novoTutorial.setPergunta(dto.pergunta());
         novoTutorial.setYoutubeUrl(dto.youtubeUrl());
+        novoTutorial.setCategoria(dto.categoria());
 
         Tutorial tutorialSalvo = tutorialRepository.save(novoTutorial);
 
@@ -52,7 +54,9 @@ public class TutorialService {
                 tutorialSalvo.getId(),
                 tutorialSalvo.getPergunta(),
                 tutorialSalvo.getYoutubeUrl(),
+                tutorialSalvo.getCategoria(),
                 tutorialSalvo.getDataCriacao()
+
         );
     }
 
