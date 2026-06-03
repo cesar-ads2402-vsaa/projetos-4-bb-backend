@@ -43,15 +43,14 @@ public class UsuarioService {
 
     public TokenResponseDTO login(LoginDTO dto) {
         Usuario usuario = repository.findByEmail(dto.email())
-                .orElseThrow(() -> new RuntimeException("Usuário não encontrado!"));
+                .orElseThrow(() -> new IllegalArgumentException("Credenciais inválidas"));
 
         if (!passwordEncoder.matches(dto.senha(), usuario.getSenha())) {
-            throw new RuntimeException("Senha incorreta!");
+            throw new IllegalArgumentException("Credenciais inválidas");
         }
 
         String token = tokenService.gerarToken(usuario);
-
-        return new TokenResponseDTO(token, usuario.getNome(),usuario.getCargo().name());
+        return new TokenResponseDTO(token, usuario.getNome(), usuario.getCargo().name());
     }
 
     public List<UsuarioResponseDTO> listarUsuariosComuns() {
