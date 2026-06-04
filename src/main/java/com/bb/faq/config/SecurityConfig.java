@@ -43,6 +43,7 @@ public class SecurityConfig {
                     req.requestMatchers(HttpMethod.DELETE, "/api/idiomas/**").hasAnyRole("ADMIN","SUPER_ADMIN");
 
                     // 2. ZONA PÚBLICA
+                    req.requestMatchers("/mcp/**","/api/mcp/**").permitAll();
                     req.requestMatchers(HttpMethod.GET, "/api/tutoriais").permitAll();
                     req.requestMatchers(HttpMethod.GET, "/api/tutoriais/**").permitAll();
                     req.requestMatchers(HttpMethod.GET, "/api/audio/**").permitAll();
@@ -73,7 +74,8 @@ public class SecurityConfig {
         CorsConfiguration configuration = new CorsConfiguration();
 
         // Aqui tem que estar a URL Exata do Front
-        configuration.setAllowedOrigins(Arrays.asList("http://localhost:3000","https://faq.darkartsbm.com"));
+        configuration.setAllowedOrigins(Arrays.asList("http://localhost:3000","https://faq.darkartsbm.com",
+                "http://localhost:6274","http://localhost:6277"));
 
         // Libera os métodos que o seu frontend vai usar
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));

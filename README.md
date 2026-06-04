@@ -1,9 +1,7 @@
 # FaqBB – Backend
 
 API REST do **FaqBB**, sistema de FAQ multilíngue do Banco do Brasil desenvolvido no **4º período** do curso de Análise e Desenvolvimento de Sistemas (ADS) da [CESAR School](https://www.cesar.school/), na disciplina de **Requisitos, Projeto de Software e Validação**.
-
-O backend expõe endpoints para tutoriais, áudios traduzidos, idiomas, usuários, autenticação JWT e moderação de conteúdo, com integração ao **Azure Blob Storage** para armazenamento de áudios.
-
+O backend expõe endpoints para tutoriais, áudios traduzidos, idiomas, usuários, autenticação JWT e moderação de conteúdo, com integração ao **Azure Blob Storage** para armazenamento de áudios. Adicionalmente, atua como um servidor **MCP (Model Context Protocol)** usando Spring AI para integrações nativas com modelos de inteligência artificial.
 ---
 
 ## Objetivo
@@ -13,6 +11,7 @@ O backend expõe endpoints para tutoriais, áudios traduzidos, idiomas, usuário
 - Garantir cadastro, login e perfis de usuário (comunidade, admin, super admin);
 - Apoiar moderação de áudios (aprovar, reprovar, votar);
 - Manter qualidade com testes automatizados e CI.
+- Habilitar capacidades agênticas através da integração com o protocolo MCP.
 
 ---
 
@@ -26,6 +25,9 @@ O backend expõe endpoints para tutoriais, áudios traduzidos, idiomas, usuário
 | `src/main/java/com/bb/faq/model` | Entidades (Usuario, Tutorial, Audio, Idioma…) |
 | `src/main/java/com/bb/faq/config` | Segurança, Azure, inicialização de dados |
 | `src/test/java/com/bb/faq` | Testes unitários (service e controller) |
+| `src/main/java/com/bb/faq/mcp` | Ferramentas de IA (Model Context Protocol) |
+| `src/test/java/com/bb/faq/bdd` | Infraestrutura e passos dos testes BDD (Cucumber) |
+| `src/test/resources/features` | Cenários de comportamento em formato Gherkin |
 | `.github/workflows` | Pipeline CI (Maven + testes) |
 | `src/main/resources/TEMPLATE_application.properties` | Modelo de variáveis de ambiente |
 
@@ -33,14 +35,27 @@ O backend expõe endpoints para tutoriais, áudios traduzidos, idiomas, usuário
 
 ## Tecnologias
 
+**Backend & APIs:**
 - Java 21
-- Spring Boot 4
-- Spring Data JPA + PostgreSQL
+- Spring Boot 3/4
 - Spring Security + JWT (Auth0)
-- Azure Storage Blob
+- Validações com Jakarta Bean Validation
+
+**Dados & Nuvem:**
+- Spring Data JPA + PostgreSQL (Produção)
+- H2 Database (Em memória para testes)
+- Azure Blob Storage (Armazenamento de áudios)
 - Spring Mail
-- JUnit 5 + Mockito
-- Maven (`mvnw`)
+
+**Testes & Qualidade:**
+- JUnit 5 + Mockito (Testes Unitários)
+- Cucumber + Gherkin (Testes BDD / Integração)
+- Spring MockMvc
+
+**DevOps:**
+- Docker
+- GitHub Actions (CI/CD Automático)
+- Azure Container Apps
 
 ---
 
@@ -86,14 +101,14 @@ O backend expõe endpoints para tutoriais, áudios traduzidos, idiomas, usuário
 
 A API sobe por padrão em `http://localhost:8080`.
 
-### Testes
+--
 
-```bash
-.\mvnw.cmd test
-```
+## Model Context Protocol (MCP)
 
-Os testes unitários cobrem **services** e **controllers** (Mockito). O CI roda automaticamente em push/PR na branch `main`.
+O backend do FaqBB implementa o ecossistema do **Model Context Protocol (MCP)** integrado ao **Spring AI**. Isso transforma a aplicação num *Agentic Backend*, habilitando LLMs externas (como Claude Desktop ou assistentes dedicados) a consumir e gerenciar os dados em tempo real através de linguagem natural de forma segura, mapeando dinamicamente as seguintes ferramentas base:
 
+- `listarTutoriais`: Consulta os vídeos, perguntas e categorias disponíveis na aplicação.
+- `criarTutorialMcp`: Cadastra novos tutoriais estruturados interpretando comandos em linguagem humana.
 ---
 
 ## Principais endpoints
@@ -107,14 +122,30 @@ Os testes unitários cobrem **services** e **controllers** (Mockito). O CI roda 
 
 ---
 
-## Testes
+## Testes e Qualidade
 
-- **Service:** regras de negócio (áudio, usuário, tutorial, idioma, token, senha).
-- **Controller:** delegação aos services e status HTTP.
-- **CI:** GitHub Actions com JDK 21 e `mvnw test`.
+O projeto possui uma arquitetura de testes robusta, dividida em:
 
-> Planejado para o futuro: testes de repository, model e integração com MockMvc.
+- **Testes Unitários (JUnit + Mockito):** Focados em validar isoladamente as regras de negócio nos `Services` e os retornos nos `Controllers`.
+- **Testes BDD / Integração (Cucumber + MockMvc):** Utilizando a linguagem Ubíqua (Gherkin), testamos fluxos completos da API (como Cadastro e Login) em um ambiente isolado utilizando um banco de dados em memória (**H2 Database**).
 
+Para rodar toda a suíte de testes (Unitários e BDD):
+
+```bash
+# Windows
+.\mvnw.cmd clean test
+
+# Linux / macOS
+./mvnw clean test
+```
+
+```markdown
+## CI/CD e Deploy
+
+O repositório conta com uma esteira configurada no **GitHub Actions** que realiza:
+1. **Continuous Integration (CI):** Ao fazer push para a `main`, a esteira sobe a aplicação, roda todos os testes (Unitários e BDD) e valida o build. Utiliza um filtro inteligente para pular execuções caso o código fonte não tenha sido alterado.
+2. **Continuous Deployment (CD):** Se os testes passarem, a esteira empacota a aplicação em uma imagem **Docker**, publica no Docker Hub e faz o deploy automático na **Azure Container Apps**.
+```
 ---
 
 ## Squad – 4º período
