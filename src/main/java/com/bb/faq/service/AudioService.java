@@ -10,6 +10,7 @@ import com.bb.faq.repository.AudioRepository;
 import com.bb.faq.repository.TutorialRepository;
 import com.bb.faq.repository.UsuarioRepository;
 import jakarta.transaction.Transactional;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
@@ -50,73 +51,91 @@ public class AudioService {
     }
 
 
+
     public AudioResponseDTO salvarAudio(Long tutorialId, String idioma, MultipartFile arquivo) throws IOException {
 
+        // Validações rápidas em banco de dados
         Tutorial tutorial = tutorialRepository.findById(tutorialId)
                 .orElseThrow(() -> new RuntimeException("Tutorial não encontrado!"));
 
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        if (authentication == null || !authentication.isAuthenticated() || !(authentication.getPrincipal() instanceof Usuario)) {
-            throw new RuntimeException("Acesso negado: Usuário não autenticado ou token inválido!");
-        }
+        String emailUsuario = authentication.getName();
+        Usuario autor = usuarioRepository.findByEmail(emailUsuario)
+                .orElseThrow(() -> new RuntimeException("Usuário não encontrado!"));
 
-        Usuario usuarioSessao = (Usuario) authentication.getPrincipal();
-        Usuario autor = usuarioRepository.findByEmail(usuarioSessao.getEmail())
-                .orElseThrow(() -> new RuntimeException("Usuário logado não encontrado!"));
+        // Cria o registro no banco com uma string temporária de processamento
+        Audio novoAudio = new Audio();
+        novoAudio.setCaminhoArquivo("PROCESSANDO_EM_BACKGROUND...");
+        novoAudio.setTutorial(tutorial);
+        novoAudio.setIdioma(idioma);
+        novoAudio.setAutor(autor);
+        novoAudio.setAprovado(false);
 
-        File tempInput = File.createTempFile("upload-", "-original");
-        File tempOutput = File.createTempFile("convertido-", ".mp3");
+        Audio audioSalvo = audioRepository.save(novoAudio);
+
+        // DISPARO ASSÍNCRONO: Cria uma nova Thread e delega o arquivo e o ID gerado
+        processarEEnviarAudioAssincrono(arquivo, audioSalvo.getId());
+
+        // Retorna a resposta imediatamente para o Frontend
+        return new AudioResponseDTO(
+                audioSalvo.getId(),
+                audioSalvo.getCaminhoArquivo(),
+                audioSalvo.getDataCriacao(),
+                tutorial.getId(),
+                audioSalvo.getVotos(),
+                audioSalvo.getIdioma(),
+                autor.getNome()
+        );
+    }
+
+    @Async
+    public void processarEEnviarAudioAssincrono(MultipartFile arquivo, Long audioId) {
+        File tempInput = null;
+        File tempOutput = null;
 
         try {
-
+            tempInput = File.createTempFile("upload-", "-original");
+            tempOutput = File.createTempFile("convertido-", ".mp3");
             arquivo.transferTo(tempInput);
 
-            AudioAttributes audioAttr = new AudioAttributes();
-            audioAttr.setCodec("libmp3lame");
-            audioAttr.setBitRate(128000); // 128 kbps (Ótima qualidade para voz)
-            audioAttr.setChannels(2);
-            audioAttr.setSamplingRate(44100);
+            AudioAttributes audioAttrs = new AudioAttributes();
+            audioAttrs.setCodec("libmp3lame");
+            audioAttrs.setBitRate(128000);
+            audioAttrs.setChannels(2);
+            audioAttrs.setSamplingRate(44100);
 
             EncodingAttributes attrs = new EncodingAttributes();
             attrs.setOutputFormat("mp3");
-            attrs.setAudioAttributes(audioAttr);
+            attrs.setAudioAttributes(audioAttrs);
 
             Encoder encoder = new Encoder();
             encoder.encode(new MultimediaObject(tempInput), tempOutput, attrs);
 
-            String nomeArquivoUnico = UUID.randomUUID() + ".mp3";
-            BlobClient blobClient = containerClient.getBlobClient(nomeArquivoUnico);
+            String nomeArquivoFinal = UUID.randomUUID().toString() + ".mp3";
+            BlobClient blobClient = containerClient.getBlobClient(nomeArquivoFinal);
 
             try (FileInputStream fis = new FileInputStream(tempOutput)) {
                 blobClient.upload(fis, tempOutput.length(), true);
             }
-            String urlDoAudioNaNuvem = blobClient.getBlobUrl();
 
-            Audio novoAudio = new Audio();
-            novoAudio.setCaminhoArquivo(urlDoAudioNaNuvem);
-            novoAudio.setTutorial(tutorial);
-            novoAudio.setIdioma(idioma);
-            novoAudio.setVotos(0);
-            novoAudio.setAutor(autor);
-            novoAudio.setAprovado(false);
+            String urlFinalAzure = blobClient.getBlobUrl();
 
-            Audio audioSalvo = audioRepository.save(novoAudio);
+            Audio audioParaAtualizar = audioRepository.findById(audioId)
+                    .orElseThrow(() -> new RuntimeException("Falha crítica: Áudio sumiu do banco durante processamento."));
 
-            return new AudioResponseDTO(
-                    audioSalvo.getId(),
-                    audioSalvo.getCaminhoArquivo(),
-                    audioSalvo.getDataCriacao(),
-                    audioSalvo.getTutorial().getId(),
-                    audioSalvo.getVotos(),
-                    audioSalvo.getIdioma(),
-                    audioSalvo.getAutor() != null ? audioSalvo.getAutor().getNome() : "Usuário Anônimo"
-            );
+            audioParaAtualizar.setCaminhoArquivo(urlFinalAzure);
+            audioRepository.save(audioParaAtualizar);
 
         } catch (Exception e) {
-            throw new RuntimeException("Falha ao converter ou salvar o áudio: " + e.getMessage(), e);
+            System.err.println("Erro crítico na Thread [" + Thread.currentThread().getName() + "] ao processar áudio ID " + audioId + ": " + e.getMessage());
+
+            audioRepository.findById(audioId).ifPresent(audioErro -> {
+                audioErro.setCaminhoArquivo("ERRO_AO_PROCESSAR_AUDIO");
+                audioRepository.save(audioErro);
+            });
         } finally {
-            if (tempInput.exists()) tempInput.delete();
-            if (tempOutput.exists()) tempOutput.delete();
+            if (tempInput != null && tempInput.exists()) tempInput.delete();
+            if (tempOutput != null && tempOutput.exists()) tempOutput.delete();
         }
     }
 
@@ -155,7 +174,7 @@ public class AudioService {
                 .collect(Collectors.toList());
     }
 
-    // 2. PARA O PAINEL DO ADMIN 
+    // 2. PARA O PAINEL DO ADMIN
     public List<AudioResponseDTO> listarAudiosPendentesDeAprovacao() {
         return audioRepository.findByAprovadoFalse()
                 .stream()
@@ -200,7 +219,7 @@ public class AudioService {
     }
     public List<AudioResponseDTO> listarTodosAprovados() {
         return audioRepository.findAll().stream()
-                .filter(Audio::isAprovado) 
+                .filter(Audio::isAprovado)
                 .map(audio -> new AudioResponseDTO(
                         audio.getId(),
                         audio.getCaminhoArquivo(),

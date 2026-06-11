@@ -20,12 +20,14 @@ public class FaqMcpTools {
         this.usuarioService = usuarioService;
     }
 
-    @Tool(description = "Lista todos os tutoriais de vídeo disponíveis no FAQ do sistema. Retorna os IDs, perguntas, categorias e URLs do YouTube.")
+    @Tool(description = "Lista todos os tutoriais de vídeo disponíveis no FAQ do sistema. Retorna os " +
+            "IDs, perguntas, categorias e URLs do YouTube.")
     public List<TutorialResponseDTO> listarTutoriais() {
         return tutorialService.listarTodos();
     }
 
-    @Tool(description = "Cria um novo tutorial de vídeo no sistema do FAQ. Exige a pergunta, a URL do YouTube e a categoria.")
+    @Tool(description = "Cria um novo tutorial de vídeo no sistema do FAQ. Exige" +
+            " a pergunta, a URL do YouTube e a categoria.")
     public TutorialResponseDTO criarTutorialMcp(String pergunta, String youtubeUrl, String categoria) {
         TutorialRequestDTO dto = new TutorialRequestDTO(pergunta, youtubeUrl, categoria);
         return tutorialService.criarTutorial(dto);
