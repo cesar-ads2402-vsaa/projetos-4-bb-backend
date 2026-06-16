@@ -111,16 +111,50 @@ O backend do FaqBB implementa o ecossistema do **Model Context Protocol (MCP)** 
 - `criarTutorialMcp`: Cadastra novos tutoriais estruturados interpretando comandos em linguagem humana.
 ---
 
-## Principais endpoints
+## Documentação da API REST (Endpoints)
 
-| Módulo | Base | Exemplos |
-|--------|------|----------|
-| Tutoriais | `/api/tutoriais` | GET listar, POST criar, DELETE `/{id}` |
-| Áudios | `/api/audio` | POST upload, GET por tutorial/idioma, PATCH voto/aprovar |
-| Usuários | `/api/usuarios` | POST cadastro/login, PATCH promover/rebaixar, recuperação de senha |
-| Idiomas | `/api/idiomas` | GET, POST, DELETE `/{id}` |
+A API do FaqBB foi construída com design RESTful, retornando dados em `application/json` e utilizando `multipart/form-data` para o envio de mídias. Rotas protegidas exigem o envio do token JWT no cabeçalho: `Authorization: Bearer <token>`.
 
----
+### 🎧 1. Áudios (`/api/audio`)
+| Método | Rota | Autenticação | Descrição |
+|---|---|---|---|
+| **POST** | `/{tutorialId}?idioma={sigla}` | `USER/ADMIN` | Faz upload de um arquivo `.mp3` (`multipart/form-data`), converte e envia para a Azure Blob Storage. |
+| **GET** | `/{tutorialId}?idioma={sigla}` | Aberto | Lista os áudios aprovados de um tutorial filtrados por idioma. |
+| **GET** | `/aprovados` | Aberto | Lista todos os áudios do sistema que já passaram pela moderação. |
+| **GET** | `/moderacao/pendentes` | `ADMIN` | Lista áudios recém-enviados que aguardam auditoria (`aprovado = false`). |
+| **PATCH** | `/{audioId}/upvote` | `USER/ADMIN` | Incrementa o contador de votos do áudio na comunidade. |
+| **PATCH** | `/{id}/aprovar` | `ADMIN` | Aprova um áudio pendente, tornando-o público. |
+| **DELETE** | `/{id}` ou `/{id}/reprovar` | `ADMIN` | Deleta o áudio do banco de dados e apaga o arquivo físico na Azure. |
+
+### 📚 2. Tutoriais (`/api/tutoriais`)
+| Método | Rota | Autenticação | Descrição |
+|---|---|---|---|
+| **GET** | `/` | Aberto | Lista o catálogo de perguntas e vídeos do YouTube. |
+| **POST** | `/` | `ADMIN` | Cria um novo tutorial (Requer JSON com `pergunta`, `youtubeUrl`, `categoria`). |
+| **DELETE** | `/{id}` | `ADMIN` | Remove o tutorial e apaga em cascata todos os áudios associados a ele na Azure. |
+
+### 👤 3. Usuários e Autenticação (`/api/usuarios`)
+| Método | Rota | Autenticação | Descrição |
+|---|---|---|---|
+| **POST** | `/cadastro` | Aberto | Registra um novo usuário (Role `USER`) com senha criptografada via BCrypt. |
+| **POST** | `/login` | Aberto | Autentica e retorna o Token JWT (válido por 2h). |
+| **GET** | `/comuns` | Aberto | Lista todos os usuários sem privilégios administrativos. |
+| **PUT** | `/trocar-senha` | `USER/ADMIN` | Atualiza a senha do usuário logado mediante validação da senha atual. |
+| **PATCH** | `/{id}/promover` | `ADMIN` | Promove um usuário comum a Administrador. |
+| **PATCH** | `/{id}/rebaixar` | `SUPER_ADMIN` | Rebaixa um Admin para usuário comum (Protegido contra auto-rebaixamento). |
+
+### 🔒 4. Recuperação de Senha
+| Método | Rota | Autenticação | Descrição |
+|---|---|---|---|
+| **POST** | `/esqueci-senha` | Aberto | Gera token UUID e dispara e-mail (SMTP) com link de recuperação. |
+| **POST** | `/resetar-senha` | Aberto | Consome o token enviado e redefine a senha do usuário. |
+
+### 🌐 5. Idiomas (`/api/idiomas`)
+| Método | Rota | Autenticação | Descrição |
+|---|---|---|---|
+| **GET** | `/` | Aberto | Retorna o dicionário de idiomas suportados (Ex: `pt-BR`, `gn`). |
+| **POST** | `/` | `SUPER_ADMIN` | Cadastra um novo idioma válido na plataforma. |
+| **DELETE**| `/{id}` | `SUPER_ADMIN` | Remove um idioma do catálogo. |
 
 ## Testes e Qualidade
 
